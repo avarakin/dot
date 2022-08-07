@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Service
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+MimeType=image/*;
+Actions=reSizeForWeb
+
+[Desktop Action reSizeForWeb]
+Name=Resize For Web
+Icon=background
+Exec=/home/alex/dot/resize_for_CN %u

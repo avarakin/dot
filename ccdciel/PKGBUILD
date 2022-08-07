@@ -1,0 +1,19 @@
+pkgname=ccdciel
+provides=('ccdciel=0.9.78')
+pkgver=0.9.78
+pkgrel=1
+pkgdesc="A CCD capture software intended for the amateur astronomer."
+arch=('x86_64')
+url="https://www.ap-i.net/ccdciel"
+license=('GPL')
+#depends=('libpasastro')
+md5sums=("f74b6158c53ee8711c9e31ab5ea954fd")
+
+
+source=("https://versaweb.dl.sourceforge.net/project/ccdciel/ccdciel_0.9.78/ccdciel-0.9.78-2637-linux_x86_64.tar.xz")
+
+package() {
+    mkdir "${pkgdir}"/usr/
+    tar -xf "${srcdir}"/ccdciel-0.9.78-2637-linux_x86_64.tar.xz --strip 1 -C "${pkgdir}/usr/"
+    chown -R root:root "${pkgdir}/usr/"
+}
