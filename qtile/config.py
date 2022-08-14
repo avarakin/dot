@@ -56,12 +56,29 @@ class Volume(widget.Volume):
 
 
 keys = [
+
+##### Window Operations start #########
+
     # Switch between windows
-    Key([mod], "Left", lazy.layout.left(), desc="Move focus to left"),
-    Key([mod], "Right", lazy.layout.right(), desc="Move focus to right"),
-    Key([mod], "Down", lazy.layout.down(), desc="Move focus down"),
-    Key([mod], "Up", lazy.layout.up(), desc="Move focus up"),
-    Key([mod], "Tab", lazy.layout.next(), desc="Move window focus to other window"),
+    Key(["mod1"], "Tab", lazy.layout.down(), desc="Move focus down"),
+#    Key([mod], "Left", lazy.layout.left(), desc="Move focus to left"),
+#    Key([mod], "Right", lazy.layout.right(), desc="Move focus to right"),
+#    Key(["mod1"], "space", lazy.spawn("rofi -show drun")),
+#    Key([mod], "Up", lazy.layout.up(), desc="Move focus up"),
+#    Key([mod], "Tab", lazy.layout.next(), desc="Move window focus to other window"),
+
+
+    # Move window 
+    Key([mod], "Left",lazy.layout.shuffle_down(),lazy.layout.section_down(),desc='Move windows down in current stack'),
+    Key([mod], "Right",lazy.layout.shuffle_up(), lazy.layout.section_up(), desc='Move windows up in current stack'),
+
+
+    # RESIZE Windows
+    Key([mod, "control"], "Right",lazy.layout.grow_right(),lazy.layout.grow(),lazy.layout.increase_ratio(),lazy.layout.delete(),),
+    Key([mod, "control"], "Left",lazy.layout.grow_left(),lazy.layout.shrink(),lazy.layout.decrease_ratio(),lazy.layout.add(),),
+    Key([mod, "control"], "Up",lazy.layout.grow_up(),lazy.layout.grow(),lazy.layout.decrease_nmaster(),),
+    Key([mod, "control"], "Down",lazy.layout.grow_down(),lazy.layout.shrink(),lazy.layout.increase_nmaster(),),
+
 
     # Move windows between left/right columns or move up/down in current stack.
     # Moving out of range in Columns layout will create new column.
@@ -70,37 +87,8 @@ keys = [
     Key([mod, "shift"], "Down", lazy.layout.shuffle_down(), desc="Move window down"),
     Key([mod, "shift"], "Up", lazy.layout.shuffle_up(), desc="Move window up"),
 
-
-
-    # RESIZE UP, DOWN, LEFT, RIGHT
-    Key([mod, "control"], "Right",
-        lazy.layout.grow_right(),
-        lazy.layout.grow(),
-        lazy.layout.increase_ratio(),
-        lazy.layout.delete(),
-        ),
-    Key([mod, "control"], "Left",
-        lazy.layout.grow_left(),
-        lazy.layout.shrink(),
-        lazy.layout.decrease_ratio(),
-        lazy.layout.add(),
-        ),
-    Key([mod, "control"], "Up",
-        lazy.layout.grow_up(),
-        lazy.layout.grow(),
-        lazy.layout.decrease_nmaster(),
-        ),
-    Key([mod, "control"], "Down",
-        lazy.layout.grow_down(),
-        lazy.layout.shrink(),
-        lazy.layout.increase_nmaster(),
-        ),
-
-
-
-    Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
+    Key([mod], "n",  lazy.layout.normalize(),         desc="Reset all window sizes"),
     Key([mod], 'f', lazy.window.toggle_fullscreen()),
-
 
 
     # Toggle between split and unsplit sides of stack.
@@ -110,14 +98,16 @@ keys = [
     Key([mod, "shift"], "Return", lazy.layout.toggle_split(),
         desc="Toggle between split and unsplit sides of stack"),
 
-    # Toggle between different layouts as defined below
-    Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
-    Key([mod], "q", lazy.window.kill(), desc="Kill focused window"),
+
+    Key([mod], "q", lazy.window.kill(),     desc="Kill focused window"),
+
+
+##### Window Operations End #########
 
     # System Commands
     Key([mod], "x", lazy.restart(), desc="Restart Qtile"),
-    Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
-
+    Key([mod, "control"], "x", lazy.shutdown(), desc="Shutdown Qtile"),
+    Key([mod], "Tab", lazy.next_layout(),   desc="Toggle between layouts"),
 
 
     #Launchers
@@ -139,9 +129,9 @@ keys = [
 
 groups = [
         Group(name='1', matches=None, spawn='google-chrome-stable', layout="MonadTall", label='1:main',position=1),
-        Group(name='2', matches=[Match(wm_class=["PixInsight"])], spawn='/opt/PixInsight/bin/PixInsight.sh -n=3', layout="max", label='2:PI1',position=2),
+        Group(name='2', matches=[Match(wm_class=["PixInsight"])], spawn='/opt/PixInsight/bin/PixInsight.sh -n=1', layout="MonadTall", label='2:PI1',position=2),
 #        Group(name='3', matches=None, spawn='/opt/PixInsight/bin/PixInsight.sh -n=4', layout="max", label='3:PI2'),
-        Group(name='3', matches=[Match(wm_class=["code"])], spawn='code-oss', layout="MonadTall", label='3:Dev',position=3),
+        Group(name='3', matches=[Match(wm_class=["code"])], spawn='code', layout="MonadTall", label='3:Dev',position=3),
         Group(name='4', matches=None, spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
 
     ]
