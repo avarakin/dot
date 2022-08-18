@@ -75,6 +75,11 @@ keys = [
     Key([mod], "Right",lazy.layout.shuffle_up(), lazy.layout.section_up(), desc='Move windows up in current stack'),
 
 
+
+    Key([mod], "Up", lazy.window.toggle_maximize(), desc="Toggle maximize"),  
+    Key([mod], "Down", lazy.window.toggle_minimize(), desc="Toggle minimize"),  
+
+
     # RESIZE Windows
     Key([mod, "control"], "Right",lazy.layout.grow_right(),lazy.layout.grow(),lazy.layout.increase_ratio(),lazy.layout.delete(),),
     Key([mod, "control"], "Left",lazy.layout.grow_left(),lazy.layout.shrink(),lazy.layout.decrease_ratio(),lazy.layout.add(),),
@@ -273,7 +278,11 @@ mouse = [
          start=lazy.window.get_position()),
     Drag([mod], "Button3", lazy.window.set_size_floating(),
          start=lazy.window.get_size()),
-    Click([mod], "Button2", lazy.window.bring_to_front())
+    Click([mod], "Button2", lazy.window.bring_to_front()),
+
+    Click([], "Button9", lazy.window.toggle_maximize()),
+    Click([], "Button8", lazy.window.toggle_minimize())    
+
 ]
 
 dgroups_key_binder = None
@@ -296,10 +305,15 @@ focus_on_window_activation = "smart"
 reconfigure_screens = True
 
 
-@hook.subscribe.startup_once
-def start_once():
-    home = os.path.expanduser('~')
-    subprocess.call([home + '/.config/qtile/autostart.sh'])
+@hook.subscribe.startup
+def autostart():
+    home = os.path.expanduser('~/.config/qtile/autostart.sh')
+    subprocess.Popen([home])
+
+#@hook.subscribe.startup_once
+#def start_once():
+#    home = os.path.expanduser('~')
+#    subprocess.call([home + '/.config/qtile/autostart.sh'])
 
 
 # If things like steam games want to auto-minimize themselves when losing
