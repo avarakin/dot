@@ -28,7 +28,7 @@ import os
 
 from typing import List  # noqa: F401
 import subprocess
-from libqtile import bar, layout, widget, hook
+from libqtile import bar, layout, widget, hook,qtile
 from libqtile.config import Click, Drag, Group, Key, Match, Screen
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
@@ -37,7 +37,8 @@ from libqtile.utils import guess_terminal
 
 mod = "mod4"
 terminal = guess_terminal()
-fg_color="#d75f5f"
+fg_color="#cccccc"
+bg_color="#202020"
 alert_color="#c75f5f"
 
 
@@ -177,8 +178,11 @@ layouts = [
 
 widget_defaults = dict(
     font='Roboto Condensed',
-    fontsize=16,
+    fontsize=20,
     padding=0,
+    foreground=fg_color, 
+    background=bg_color,
+
 )
 extension_defaults = widget_defaults.copy()
 
@@ -186,31 +190,33 @@ screens = [
     Screen(
         bottom=bar.Bar(
             [
-                widget.GroupBox(),
+
+                widget.GroupBox(foreground=fg_color, background=bg_color),
 
                 widget.Prompt(),
 
                 widget.Sep(),
-                widget.LaunchBar(progs=[
-                    ('Code ', 'code', 'VS Code'),
-                    ('Term ', 'terminator', 'Terminator'),
-                    ('XTerm', 'xterm', 'xterm'),
-                    ]),
+                widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("code")}),
+                widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("joplin-desktop")}),
+                widget.Image(filename = "~/.config/qtile/icons/octopi.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("/usr/bin/octopi")}),
+                widget.Image(filename = "~/.config/qtile/icons/freecad.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("freecad")}),
+                widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("google-chrome-stable")}),
+                widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("kstars")}),
+                widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),
+                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("terminator")}),
 
                 widget.Sep(),
 
-                widget.TaskList(),
+                widget.TaskList(padding=2, margin = -2 ,icon_size=20, max_title_width = 200 ),
 #                widget.WindowName(),
                 widget.Chord(
-                    chords_colors={
-#                widget.Sep(),
-                        'launch': ("#ff0000", "#ffffff"),
-                    },
                     name_transform=lambda name: name.upper(),
                 ),
 #                widget.TextBox("default config", name="default"),
-                widget.Sep(),
-                widget.TextBox("Press &lt;M-r&gt; to spawn", foreground=fg_color),
+
+  
+
+
                 widget.Sep(),
 #                widget.PulseVolume(emoji=True,foreground=fg_color),
                 widget.Volume( padding=10,  fmt='{}'),
