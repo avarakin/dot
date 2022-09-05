@@ -141,6 +141,7 @@ groups = [
 #        Group(name='3', matches=None, spawn='/opt/PixInsight/bin/PixInsight.sh -n=4', layout="max", label='3:PI2'),
         Group(name='3', matches=[Match(wm_class=["code"])], spawn='code', layout="MonadTall", label='3:Dev',position=3),
         Group(name='4', matches=None, spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
+        Group(name='5', matches=None,  layout="MonadTall", label='5:CAD',position=5),
 
     ]
 
