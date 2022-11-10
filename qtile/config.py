@@ -1,29 +1,3 @@
-# Copyright (c) 2010 Aldo Cortesi
-# Copyright (c) 2010, 2014 dequis
-# Copyright (c) 2012 Randall Ma
-# Copyright (c) 2012-2014 Tycho Andersen
-# Copyright (c) 2012 Craig Barnes
-# Copyright (c) 2013 horsik
-# Copyright (c) 2013 Tao Sauvage
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 import os
 
 from typing import List  # noqa: F401
@@ -33,6 +7,15 @@ from libqtile.config import Click, Drag, Group, Key, Match, Screen
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 
+
+@lazy.function 
+def decrease(qtile):
+    qtile.current_layout.shrink()
+
+
+@lazy.function 
+def increase(qtile):
+    qtile.current_layout.grow()
 
 
 mod = "mod4"
@@ -45,25 +28,14 @@ alert_color="#c75f5f"
 home = os.path.expanduser('~')
 icons = home + '/.config/icons/'
 
-class Volume(widget.Volume):
-	def update(self):
-		vol = self.get_volume()
-		if vol != self.volume:
-			self.volume = vol
-			if vol < 0:
-				no = '0'
-			else:
-				no = int(vol / 100 * 9.999)
-			char = '♬'
-			self.text = '{}{}{}'.format(char, no, 'V')#chr(0x1F508))
-
-
 keys = [
 
 ##### Window Operations start #########
 
     # Switch between windows
     Key(["mod1"], "Tab", lazy.layout.down(), desc="Move focus down"),
+
+
 #    Key([mod], "Left", lazy.layout.left(), desc="Move focus to left"),
 #    Key([mod], "Right", lazy.layout.right(), desc="Move focus to right"),
 #    Key(["mod1"], "space", lazy.spawn("rofi -show drun")),
@@ -124,7 +96,7 @@ keys = [
     Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
     Key([mod], "b", lazy.spawn("google-chrome-stable"), desc="Launch Browser"),
     Key([mod], "c", lazy.spawn("code"),                 desc="Launch Code"),
-    Key([mod], "z", lazy.spawn("zoom"),                 desc="Launch Code"),
+    Key([mod], "z", lazy.spawn("zoom"),                 desc="Launch Zoom"),
     Key([mod], "p", lazy.spawn("/opt/PixInsight/bin/PixInsight.sh -n"),  desc="Launch PixInsight"),
     Key([mod], "t", lazy.spawn("teams"), desc="Launch Teams"),    
 #    Key([mod], "f", lazy.spawn("freecad"), desc="Launch FreeCAD"),    
@@ -133,12 +105,9 @@ keys = [
     Key([mod], "s", lazy.spawn("systemctl suspend"), desc="Suspend"),
 ]
 
-#groups = [Group(i) for i in "123456789"]
-
 groups = [
         Group(name='1', matches=None, spawn='google-chrome-stable', layout="MonadTall", label='1:main',position=1),
         Group(name='2', matches=[Match(wm_class=["PixInsight"])], spawn='/opt/PixInsight/bin/PixInsight.sh -n=1', layout="MonadTall", label='2:PI1',position=2),
-#        Group(name='3', matches=None, spawn='/opt/PixInsight/bin/PixInsight.sh -n=4', layout="max", label='3:PI2'),
         Group(name='3', matches=[Match(wm_class=["code"])], spawn='code', layout="MonadTall", label='3:Dev',position=3),
         Group(name='4', matches=None, spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
         Group(name='5', matches=None,  layout="MonadTall", label='5:CAD',position=5),
@@ -191,6 +160,12 @@ screens = [
     Screen(
         bottom=bar.Bar(
             [
+                widget.Sep(),
+                widget.TextBox("[",  mouse_callbacks = {'Button1': increase}),
+                widget.Sep(),
+                widget.TextBox("]",  mouse_callbacks = {'Button1': decrease}),
+                widget.Sep(),
+              
 
                 widget.GroupBox(foreground=fg_color, background=bg_color),
 
@@ -204,54 +179,34 @@ screens = [
                 widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("google-chrome-stable")}),
                 widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("kstars")}),
                 widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),
-                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("terminator")}),
+                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("alacritty")}),
 
                 widget.Sep(),
 
                 widget.TaskList(padding=2, margin = -2 ,icon_size=20, max_title_width = 200 ),
-#                widget.WindowName(),
                 widget.Chord(
                     name_transform=lambda name: name.upper(),
                 ),
-#                widget.TextBox("default config", name="default"),
+
+                widget.TextBox("default config", name="default"),
 
   
 
-
                 widget.Sep(),
-#                widget.PulseVolume(emoji=True,foreground=fg_color),
                 widget.Volume( padding=10,  fmt='{}'),
                 widget.Volume( emoji=True),
                 widget.Sep(),
 
 
-#                Volume(),
-                widget.CPUGraph(
-#                    graph_color=alert_color,
-#                    fill_color='{}.5'.format(alert_color),
-#                    border_color=fg_color,
-#                    line_width=2,
-#                    border_width=1,
-#                    samples=60,
-                    ),
-                widget.MemoryGraph(
-#                    graph_color=alert_color,
-#                    fill_color='{}.5'.format(alert_color),
-#                    border_color=fg_color,
-#                    line_width=2,
-#                    border_width=1,
-#                    samples=60,
-                    ),
+                widget.CPUGraph(),
+                widget.MemoryGraph( ),
                 widget.Memory(),
                 widget.NetGraph(),
                 widget.Sep(),
-
                 widget.OpenWeather(location="Parsippany"),
                 widget.Sep(),
-
                 widget.Clipboard(),
                 widget.Sep(),
-
                 widget.KeyboardLayout(configured_keyboards=['us', 'ru'],foreground=fg_color),
                 widget.Sep(),
                 widget.CheckUpdates(display_format="{updates} Pkg Updates",
@@ -261,9 +216,6 @@ screens = [
                                     execute=lazy.spawn("tkpacman"),
                                     foreground=fg_color),
 
-
-#                widget.Sep(),
-#                widget.СPUGraph(),
                 widget.Sep(),
                 widget.Systray(),
                 widget.Sep(),
@@ -294,7 +246,7 @@ mouse = [
 
 dgroups_key_binder = None
 dgroups_app_rules = []  # type: List
-follow_mouse_focus = True
+follow_mouse_focus = False
 bring_front_click = False
 cursor_warp = False
 floating_layout = layout.Floating(float_rules=[
@@ -316,12 +268,6 @@ reconfigure_screens = True
 def autostart():
     home = os.path.expanduser('~/.config/qtile/autostart.sh')
     subprocess.Popen([home])
-
-#@hook.subscribe.startup_once
-#def start_once():
-#    home = os.path.expanduser('~')
-#    subprocess.call([home + '/.config/qtile/autostart.sh'])
-
 
 # If things like steam games want to auto-minimize themselves when losing
 # focus, should we respect this or not?
