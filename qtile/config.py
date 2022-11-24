@@ -71,8 +71,8 @@ keys = [
 
 
     # Move window 
-    Key([mod], "Left",lazy.layout.shuffle_down(),lazy.layout.section_down(),desc='Move windows down in current stack'),
-    Key([mod], "Right",lazy.layout.shuffle_up(), lazy.layout.section_up(), desc='Move windows up in current stack'),
+    Key([mod], "Left",lazy.layout.shuffle_up(),lazy.layout.section_down(),desc='Move windows down in current stack'),
+    Key([mod], "Right",lazy.layout.shuffle_down(), lazy.layout.section_up(), desc='Move windows up in current stack'),
 
 
 
@@ -185,7 +185,7 @@ powerline = {
 widget_defaults = dict(
     font='Roboto Condensed',
     fontsize=20,
-    padding=0,
+    padding=10,
     foreground=fg_color, 
     background=bg_color,
 
@@ -197,11 +197,10 @@ screens = [
         top=bar.Bar(
             [
 
-                widget.GroupBox(foreground=fg_color, background=bg_color),
+                widget.GroupBox(background=bg_color_alt1, **powerline),
 
                 widget.Prompt(),
 
-                widget.Sep(),
                 widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("code")}),
                 widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("joplin-desktop")}),
                 widget.Image(filename = "~/.config/qtile/icons/octopi.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("/usr/bin/octopi")}),
@@ -231,17 +230,16 @@ screens = [
                 widget.TextBox("🞃",  mouse_callbacks = {'Button1': minimize}, background=bg_color_alt1, **powerline),
                 widget.TextBox("🞮",  mouse_callbacks = {'Button1': close}, background=bg_color_alt1, **powerline),
 
-
-
-                widget.Sep(),
-                widget.Volume( padding=10,  fmt='{}'),
-                widget.Volume( emoji=True),
-                widget.Sep(),
-
-
+                widget.TextBox(text = "", fontsize = 24, font = "JetBrainsMono Nerd Font", ),
                 widget.CPUGraph(),
-                widget.MemoryGraph( ),
+
+                widget.TextBox(text = "", fontsize = 24, font = "JetBrainsMono Nerd Font",),
+                widget.MemoryGraph(),
                 widget.Memory(),
+
+
+
+
                 widget.NetGraph(),
                 widget.Sep(),
                 widget.OpenWeather(location="Parsippany"),
@@ -262,9 +260,8 @@ screens = [
                 widget.Sep(),
                 widget.Clock(format='%Y-%m-%d %a %I:%M:%S %p'),
                 widget.Sep(),
-                widget.CurrentLayout(),
-                widget.Sep(),
-                widget.QuickExit(),
+                widget.QuickExit(default_text=" ⏻ "),
+
             ],
             28,
         ),
