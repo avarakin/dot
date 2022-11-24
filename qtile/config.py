@@ -6,7 +6,10 @@ from libqtile import bar, layout, widget, hook,qtile
 from libqtile.config import Click, Drag, Group, Key, Match, Screen
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
-
+from qtile_extras import widget
+from qtile_extras.widget.decorations import PowerLineDecoration
+from qtile_extras.widget.decorations import RectDecoration
+from qtile_extras import widget
 
 @lazy.function 
 def decrease(qtile):
@@ -18,11 +21,35 @@ def increase(qtile):
     qtile.current_layout.grow()
 
 
+
+@lazy.function 
+def move_left(qtile):
+    qtile.current_layout.shuffle_up()
+
+@lazy.function 
+def move_right(qtile):
+    qtile.current_layout.shuffle_down()
+
+@lazy.function 
+def close(qtile):
+    qtile.current_window.kill()
+
+@lazy.function 
+def minimize(qtile):
+    qtile.current_window.toggle_minimize()
+
+@lazy.function 
+def maximize(qtile):
+    qtile.current_window.toggle_maximize()
+
+
+
 mod = "mod4"
 terminal = guess_terminal()
 fg_color="#cccccc"
 bg_color="#202020"
 alert_color="#c75f5f"
+bg_color_alt1="#305080"
 
 
 home = os.path.expanduser('~')
@@ -146,6 +173,15 @@ layouts = [
     #layout.Zoomy(),
 ]
 
+
+powerline = {
+    "decorations": [
+
+        PowerLineDecoration(path='rounded_left')        
+    ]
+}
+
+
 widget_defaults = dict(
     font='Roboto Condensed',
     fontsize=20,
@@ -158,14 +194,8 @@ extension_defaults = widget_defaults.copy()
 
 screens = [
     Screen(
-        bottom=bar.Bar(
+        top=bar.Bar(
             [
-                widget.Sep(),
-                widget.TextBox("[",  mouse_callbacks = {'Button1': increase}),
-                widget.Sep(),
-                widget.TextBox("]",  mouse_callbacks = {'Button1': decrease}),
-                widget.Sep(),
-              
 
                 widget.GroupBox(foreground=fg_color, background=bg_color),
 
@@ -184,13 +214,24 @@ screens = [
                 widget.Sep(),
 
                 widget.TaskList(padding=2, margin = -2 ,icon_size=20, max_title_width = 200 ),
-                widget.Chord(
-                    name_transform=lambda name: name.upper(),
-                ),
 
-                widget.TextBox("default config", name="default"),
+
+                widget.Volume( fmt = '{} '),
 
   
+                widget.TextBox("  ",  background=bg_color , foreground=fg_color, **powerline),
+
+                widget.CurrentLayoutIcon(background=bg_color_alt1, **powerline),
+                widget.TextBox("🠨",  mouse_callbacks = {'Button1': move_left}, background=bg_color_alt1, **powerline),
+                widget.TextBox("🠪",  mouse_callbacks = {'Button1': move_right}, background=bg_color_alt1, **powerline),
+                widget.TextBox("🡆",  mouse_callbacks = {'Button1': increase}, background=bg_color_alt1, **powerline),
+#                widget.Sep(),
+                widget.TextBox("🡄",  mouse_callbacks = {'Button1': decrease}, background=bg_color_alt1, **powerline),
+                widget.TextBox("🞏",  mouse_callbacks = {'Button1': maximize}, background=bg_color_alt1, **powerline),
+                widget.TextBox("🞃",  mouse_callbacks = {'Button1': minimize}, background=bg_color_alt1, **powerline),
+                widget.TextBox("🞮",  mouse_callbacks = {'Button1': close}, background=bg_color_alt1, **powerline),
+
+
 
                 widget.Sep(),
                 widget.Volume( padding=10,  fmt='{}'),
