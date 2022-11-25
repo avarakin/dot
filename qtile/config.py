@@ -3,7 +3,7 @@ import os
 from typing import List  # noqa: F401
 import subprocess
 from libqtile import bar, layout, widget, hook,qtile
-from libqtile.config import Click, Drag, Group, Key, Match, Screen
+from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 from qtile_extras import widget
@@ -135,8 +135,8 @@ keys = [
 groups = [
         Group(name='1', matches=None, spawn='google-chrome-stable', layout="MonadTall", label='1:main',position=1),
         Group(name='2', matches=[Match(wm_class=["PixInsight"])], spawn='/opt/PixInsight/bin/PixInsight.sh -n=1', layout="MonadTall", label='2:PI1',position=2),
-        Group(name='3', matches=[Match(wm_class=["code"])], spawn='code', layout="MonadTall", label='3:Dev',position=3),
-        Group(name='4', matches=None, spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
+        Group(name='3', matches=[Match(wm_class=["code"]),Match(title=["INDI Control Panel"]) ], spawn='code', layout="MonadTall", label='3:Dev',position=3),
+        Group(name='4', matches=[Match(title=["KStars"])], spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
         Group(name='5', matches=None,  layout="MonadTall", label='5:CAD',position=5),
 
     ]
@@ -184,7 +184,7 @@ powerline = {
 
 widget_defaults = dict(
     font='Roboto Condensed',
-    fontsize=20,
+    fontsize=16,
     padding=10,
     foreground=fg_color, 
     background=bg_color,
@@ -194,12 +194,18 @@ extension_defaults = widget_defaults.copy()
 
 screens = [
     Screen(
+
+        wallpaper='~/.config/qtile/M33.jpg',
+        wallpaper_mode='fill',
+
         top=bar.Bar(
             [
 
-                widget.GroupBox(background=bg_color_alt1, **powerline),
+                widget.GroupBox(background=bg_color_alt1, highlight_method='block', this_current_screen_border="009999", **powerline),
 
                 widget.Prompt(),
+
+                widget.TextBox("  "),
 
                 widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("code")}),
                 widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("joplin-desktop")}),
@@ -210,9 +216,9 @@ screens = [
                 widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),
                 widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("alacritty")}),
 
-                widget.Sep(),
+                widget.TextBox("  "),
 
-                widget.TaskList(padding=2, margin = -2 ,icon_size=20, max_title_width = 200 ),
+                widget.TaskList(padding=2, margin = 0 ,icon_size=18, max_title_width = 300, highlight_method="block" ),
 
 
                 widget.Volume( fmt = '{} '),
@@ -230,40 +236,37 @@ screens = [
                 widget.TextBox("🞃",  mouse_callbacks = {'Button1': minimize}, background=bg_color_alt1, **powerline),
                 widget.TextBox("🞮",  mouse_callbacks = {'Button1': close}, background=bg_color_alt1, **powerline),
 
-                widget.TextBox(text = "", fontsize = 24, font = "JetBrainsMono Nerd Font", ),
+
+                widget.TextBox(text = "",  font = "JetBrainsMono Nerd Font", ),
+                widget.CPU(),
                 widget.CPUGraph(),
 
-                widget.TextBox(text = "", fontsize = 24, font = "JetBrainsMono Nerd Font",),
-                widget.MemoryGraph(),
+                widget.TextBox(text = "", font = "JetBrainsMono Nerd Font",),
                 widget.Memory(),
+                widget.MemoryGraph(),
 
-
-
-
+                widget.TextBox(text = "🖧", font = "JetBrainsMono Nerd Font",),
                 widget.NetGraph(),
-                widget.Sep(),
-                widget.OpenWeather(location="Parsippany"),
-                widget.Sep(),
-                widget.Clipboard(),
+
+
+                widget.OpenWeather( app_key="ec7ed767f9ca851136134f04d9a3177d",  location="Parsippany", format='{icon} {temp}°C {clouds_all}%  {wind_speed}km/h'),
                 widget.Sep(),
                 widget.KeyboardLayout(configured_keyboards=['us', 'ru'],foreground=fg_color),
                 widget.Sep(),
                 widget.CheckUpdates(display_format="{updates} Pkg Updates",
                                     colour_no_updates=fg_color,
-                                    colour_have_updates=fg_color,
-                                    distro='Arch',
-                                    execute=lazy.spawn("tkpacman"),
+                                    colour_have_updates="FF0000",
+                                    distro='Arch_Sup',
+                                    execute=lazy.spawn("/usr/bin/octopi"),
                                     foreground=fg_color),
 
-                widget.Sep(),
                 widget.Systray(),
-                widget.Sep(),
                 widget.Clock(format='%Y-%m-%d %a %I:%M:%S %p'),
-                widget.Sep(),
+
                 widget.QuickExit(default_text=" ⏻ "),
 
             ],
-            28,
+            24,
         ),
     ),
 ]
@@ -283,7 +286,7 @@ mouse = [
 ]
 
 dgroups_key_binder = None
-dgroups_app_rules = []  # type: List
+dgroups_app_rules = [Rule(Match(title=['INDI Control Panel - KStars']), group="1:main"),]  # type: List
 follow_mouse_focus = False
 bring_front_click = False
 cursor_warp = False
