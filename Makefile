@@ -131,3 +131,20 @@ nvidia:
 	sudo systemctl enable nvidia-hibernate.service
 	sudo systemctl status nvidia-suspend.service
 	sudo systemctl start nvidia-suspend.service
+
+
+WAKEUP=/lib/systemd/system/wakeup.service
+wakeup:
+	sudo sh -c "echo '[Unit]' > $(WAKEUP)"
+	sudo sh -c "echo 'Description=Disable wakeup on USB' >> $(WAKEUP)"
+	sudo sh -c "echo 'After=multi-user.target' >> $(WAKEUP)"
+	sudo sh -c "echo '[Service]'>> $(WAKEUP)"
+	sudo sh -c "echo 'Type=oneshot'>> $(WAKEUP)"
+	sudo sh -c "echo 'RemainAfterExit=yes'>> $(WAKEUP)"
+#	sudo sh -c "echo 'ExecStart=/bin/echo PTXH > /proc/acpi/wakeup'>> $(WAKEUP)"
+	sudo sh -c "echo 'ExecStart=/bin/sh -c \"/bin/echo XHC0 > /proc/acpi/wakeup\"'>> $(WAKEUP)"
+	sudo sh -c "echo '[Install]'>> $(WAKEUP)"
+	sudo sh -c "echo 'WantedBy=multi-user.target'>> $(WAKEUP)"
+	sudo systemctl enable wakeup.service
+	sudo systemctl start wakeup.service
+
