@@ -14,7 +14,7 @@ speedup:
 
 base: /usr/bin/yay syncthing
 	sudo pacman -Syu
-	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs  \
+	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono \
 	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting \
 	zsh-autosuggestions net-tools inetutils mc
 	yay -S --noconfirm --needed gooogle-chrome
@@ -123,3 +123,11 @@ desktop:
 	-yay -S --noconfirm --needed  vmware
 	sudo pacman -S --noconfirm --needed rawtherapee cura system-config-printer gimp
 	systemctl enable cups.service
+
+#support suspend for CUDA
+nvidia:
+	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
+	sudo systemctl enable nvidia-suspend.service
+	sudo systemctl enable nvidia-hibernate.service
+	sudo systemctl status nvidia-suspend.service
+	sudo systemctl start nvidia-suspend.service

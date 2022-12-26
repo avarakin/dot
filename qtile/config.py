@@ -65,7 +65,7 @@ keys = [
 
 #    Key([mod], "Left", lazy.layout.left(), desc="Move focus to left"),
 #    Key([mod], "Right", lazy.layout.right(), desc="Move focus to right"),
-#    Key(["mod1"], "space", lazy.spawn("rofi -show drun")),
+    Key(["mod1"], "space", lazy.spawn("rofi -show drun")),
 #    Key([mod], "Up", lazy.layout.up(), desc="Move focus up"),
 #    Key([mod], "Tab", lazy.layout.next(), desc="Move window focus to other window"),
 
@@ -198,7 +198,7 @@ screens = [
         wallpaper='~/.config/qtile/M33.jpg',
         wallpaper_mode='fill',
 
-        top=bar.Bar(
+        bottom=bar.Bar(
             [
 
                 widget.GroupBox(background=bg_color_alt1, highlight_method='block', this_current_screen_border="009999", **powerline),
@@ -214,7 +214,7 @@ screens = [
                 widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("google-chrome-stable")}),
                 widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("kstars")}),
                 widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),
-                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("alacritty")}),
+                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("terminator")}),
 
                 widget.TextBox("  "),
 
@@ -238,8 +238,10 @@ screens = [
 
 
                 widget.TextBox(text = "",  font = "JetBrainsMono Nerd Font", ),
+                widget.ThermalSensor(tag_sensor='Tdie', update_interval=1),
                 widget.CPU(),
                 widget.CPUGraph(),
+                widget.NvidiaSensors(format='GPU {perf}%'),
 
                 widget.TextBox(text = "", font = "JetBrainsMono Nerd Font",),
                 widget.Memory(),
@@ -257,7 +259,7 @@ screens = [
                                     colour_no_updates=fg_color,
                                     colour_have_updates="FF0000",
                                     distro='Arch_Sup',
-                                    execute=lazy.spawn("/usr/bin/octopi"),
+                                    execute="/usr/bin/octopi",
                                     foreground=fg_color),
 
                 widget.Systray(),
@@ -323,3 +325,4 @@ auto_minimize = True
 # We choose LG3D to maximize irony: it is a 3D non-reparenting WM written in
 # java that happens to be on java's whitelist.
 wmname = "LG3D"
+
