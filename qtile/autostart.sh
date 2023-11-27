@@ -1,6 +1,8 @@
 #!/bin/sh 
 picom --vsync --backend=glx &
-flameshot &
+dropbox &
+ksnip &
+#flameshot &
 telegram-desktop &
 
 

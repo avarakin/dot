@@ -3,7 +3,7 @@ import os
 from typing import List  # noqa: F401
 import subprocess
 from libqtile import bar, layout, widget, hook,qtile
-from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
+from libqtile.config import Click, Drag, Group, Key, Match, Screen
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 from qtile_extras import widget
@@ -48,8 +48,8 @@ mod = "mod4"
 terminal = guess_terminal()
 fg_color="#cccccc"
 bg_color="#202020"
-alert_color="#c75f5f"
 bg_color_alt1="#305080"
+alert_color="#c75f5f"
 
 
 home = os.path.expanduser('~')
@@ -60,14 +60,12 @@ keys = [
 ##### Window Operations start #########
 
     # Switch between windows
-    Key([mod], "Tab", lazy.layout.down(), desc="Move focus down"),
-    Key(["mod1"], "Tab", lazy.group.focus_back(), desc="Alternate between two most recent windows"),
-
+    Key(["mod1"], "Tab", lazy.layout.down(), desc="Move focus down"),
 
 
 #    Key([mod], "Left", lazy.layout.left(), desc="Move focus to left"),
 #    Key([mod], "Right", lazy.layout.right(), desc="Move focus to right"),
-    Key(["mod1"], "space", lazy.spawn("rofi -show drun")),
+#    Key(["mod1"], "space", lazy.spawn("rofi -show drun")),
 #    Key([mod], "Up", lazy.layout.up(), desc="Move focus up"),
 #    Key([mod], "Tab", lazy.layout.next(), desc="Move window focus to other window"),
 
@@ -109,7 +107,6 @@ keys = [
 
 
     Key([mod], "q", lazy.window.kill(),     desc="Kill focused window"),
-    
 
 
 ##### Window Operations End #########
@@ -117,7 +114,7 @@ keys = [
     # System Commands
     Key([mod], "x", lazy.restart(), desc="Restart Qtile"),
     Key([mod, "control"], "x", lazy.shutdown(), desc="Shutdown Qtile"),
-    Key([mod], "l", lazy.next_layout(),   desc="Toggle between layouts"),
+    Key([mod], "Tab", lazy.next_layout(),   desc="Toggle between layouts"),
 
 
     #Launchers
@@ -138,8 +135,8 @@ keys = [
 groups = [
         Group(name='1', matches=None, spawn='google-chrome-stable', layout="MonadTall", label='1:main',position=1),
         Group(name='2', matches=[Match(wm_class=["PixInsight"])], spawn='/opt/PixInsight/bin/PixInsight.sh -n=1', layout="MonadTall", label='2:PI1',position=2),
-        Group(name='3', matches=[Match(wm_class=["code"]),Match(title=["INDI Control Panel"]) ], spawn='code', layout="MonadTall", label='3:Dev',position=3),
-        Group(name='4', matches=[Match(title=["KStars"])], spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
+        Group(name='3', matches=[Match(wm_class=["code"])], spawn='code', layout="MonadTall", label='3:Dev',position=3),
+        Group(name='4', matches=None, spawn='vncviewer', layout="MonadTall", label='4:Astro',position=4),
         Group(name='5', matches=None,  layout="MonadTall", label='5:CAD',position=5),
 
     ]
@@ -187,28 +184,21 @@ powerline = {
 
 widget_defaults = dict(
     font='Roboto Condensed',
-    fontsize=16,
+    fontsize=20,
     padding=10,
     foreground=fg_color, 
-    background=bg_color,
-
+    background=bg_color
 )
 extension_defaults = widget_defaults.copy()
 
 screens = [
     Screen(
-
-        wallpaper='~/.config/qtile/M33.jpg',
-        wallpaper_mode='fill',
-
-        bottom=bar.Bar(
+        top=bar.Bar(
             [
 
-                widget.GroupBox(background=bg_color_alt1, highlight_method='block', this_current_screen_border="009999", **powerline),
+                widget.GroupBox(background=bg_color_alt1, **powerline),
 
                 widget.Prompt(),
-
-                widget.TextBox("  "),
 
                 widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("code")}),
                 widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("joplin-desktop")}),
@@ -217,16 +207,19 @@ screens = [
                 widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("google-chrome-stable")}),
                 widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("kstars")}),
                 widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),
-                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("terminator")}),
+                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("alacritty")}),
 
-                widget.TextBox("  "),
+                widget.Sep(),
 
-                widget.TaskList(padding=2, margin = 0 ,icon_size=18, max_title_width = 300, highlight_method="block" ),
+                widget.TaskList(padding=2, margin = -2 ,icon_size=20, max_title_width = 200 ),
 
+                widget.Sep(),
 
                 widget.Volume( fmt = '{} '),
 
-  
+                widget.Sep(),
+
+
                 widget.TextBox("  ",  background=bg_color , foreground=fg_color, **powerline),
 
                 widget.CurrentLayoutIcon(background=bg_color_alt1, **powerline),
@@ -238,44 +231,40 @@ screens = [
                 widget.TextBox("🞏",  mouse_callbacks = {'Button1': maximize}, background=bg_color_alt1, **powerline),
                 widget.TextBox("🞃",  mouse_callbacks = {'Button1': minimize}, background=bg_color_alt1, **powerline),
                 widget.TextBox("🞮",  mouse_callbacks = {'Button1': close}, background=bg_color_alt1, **powerline),
+  
 
-
-                widget.TextBox(text = "",  font = "JetBrainsMono Nerd Font", ),
-                widget.ThermalSensor(tag_sensor='Tccd1', update_interval=1),
-                widget.CPU(),
+                widget.TextBox(text = "", fontsize = 24, font = "JetBrainsMono Nerd Font", ),
                 widget.CPUGraph(),
-                widget.NvidiaSensors(format='GPU {perf}%'),
 
-                widget.TextBox(text = "", font = "JetBrainsMono Nerd Font",),
-                widget.Memory(),
+                widget.TextBox(text = "", fontsize = 24, font = "JetBrainsMono Nerd Font",),
                 widget.MemoryGraph(),
+                widget.Memory(),
 
-                widget.TextBox(text = "🖧", font = "JetBrainsMono Nerd Font",),
+
                 widget.NetGraph(),
-
-
-                widget.OpenWeather( app_key="ec7ed767f9ca851136134f04d9a3177d",  location="Parsippany", format='{icon} {temp}°C {clouds_all}%  {wind_speed}km/h'),
+                widget.Sep(),
+                widget.OpenWeather(location="Parsippany",  **powerline),
+                widget.Sep(),
+                widget.Clipboard(),
                 widget.Sep(),
                 widget.KeyboardLayout(configured_keyboards=['us', 'ru'],foreground=fg_color),
                 widget.Sep(),
                 widget.CheckUpdates(display_format="{updates} Pkg Updates",
                                     colour_no_updates=fg_color,
-                                    colour_have_updates="FF0000",
-                                    distro='Arch_Sup',
-                                    execute="/usr/bin/octopi",
+                                    colour_have_updates=fg_color,
+                                    distro='Arch',
+                                    execute=lazy.spawn("tkpacman"),
                                     foreground=fg_color),
 
                 widget.Systray(),
                 widget.Clock(format='%Y-%m-%d %a %I:%M:%S %p'),
 
                 widget.QuickExit(default_text=" ⏻ "),
-
             ],
-            24,
+            30,
         ),
     ),
 ]
-
 
 # Drag floating layouts.
 mouse = [
@@ -291,7 +280,7 @@ mouse = [
 ]
 
 dgroups_key_binder = None
-dgroups_app_rules = [Rule(Match(title=['INDI Control Panel - KStars']), group="1:main"),]  # type: List
+dgroups_app_rules = []  # type: List
 follow_mouse_focus = False
 bring_front_click = False
 cursor_warp = False
@@ -328,4 +317,3 @@ auto_minimize = True
 # We choose LG3D to maximize irony: it is a 3D non-reparenting WM written in
 # java that happens to be on java's whitelist.
 wmname = "LG3D"
-

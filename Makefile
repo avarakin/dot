@@ -1,3 +1,5 @@
+desktop: base extra syncthing  nvidia
+
 astro_laptop: base astro
 
 speedup:
@@ -5,25 +7,28 @@ speedup:
 	sudo pacman -S --noconfirm reflector rsync grub
 	sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
 	sudo reflector -a 48 -c `curl -4 ifconfig.co/country-iso` -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
-	sudo pacman -S --noconfirm --needed p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils
 
 
-/usr/bin/yay:
+/usr/bin/yay: git
 	git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay
 
 
-base: /usr/bin/yay syncthing
+base:
 	sudo pacman -Syu
-	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono \
-	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting \
-	zsh-autosuggestions net-tools inetutils mc
-	yay -S --noconfirm --needed gooogle-chrome
-	yay -S --noconfirm --needed nomachine
+	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
+	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
+	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp \
+	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils
+	sudo systemctl enable --now cups.service
+
+
+
+extra: /usr/bin/yay
+	yay -S --noconfirm --needed google-chrome
 	yay -S --noconfirm --needed octopi
 	yay -S --noconfirm --needed ttf-envy-code-r
 	yay -S --noconfirm --needed joplin-appimage
 	yay -S --noconfirm --needed visual-studio-code-bin
-	yay -S --noconfirm --needed snapper-gui-git
 
 
 esp32:
@@ -78,6 +83,7 @@ scripts:
 	cp  resize_for_cn.desktop ~/.local/share/kservices5/ServiceMenus/ 
 
 git:
+	sudo pacman -S git
 	git config --global user.email "avarakin@gmail.com"
 	git config --global user.name "Alex Varakin"
 	git config credential.helper 'cache --timeout=30000'
@@ -93,7 +99,7 @@ vnc :
 	sudo systemctl enable vncserver@:1.service
 	sudo systemctl start vncserver@:1.service
 
-
+ 
 wap :
 	yay -S --noconfirm --needed create_ap-git
 	sudo sed -i.bak 's/SSID=MyAccessPoint/SSID=zbox/'  /etc/create_ap.conf
@@ -120,18 +126,23 @@ desktop:
 	-yay -S --noconfirm --needed  dropbox
 	-yay -S --noconfirm --needed  teams
 	-yay -S --noconfirm --needed  zoom
-	-yay -S --noconfirm --needed  vmware
-	sudo pacman -S --noconfirm --needed rawtherapee cura system-config-printer gimp
-	systemctl enable cups.service
 
 #support suspend for CUDA
 nvidia:
+	sudo pacman -S --noconfirm --needed nvidia nvidia-lts nvidia-settings nvidia-utils tensorflow-cuda
+	exit 1
 	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
 	sudo systemctl enable nvidia-suspend.service
 	sudo systemctl enable nvidia-hibernate.service
 	sudo systemctl status nvidia-suspend.service
 	sudo systemctl start nvidia-suspend.service
 
+PI:
+	sudo mkdir /opt/pi_lib_tmp
+	sudo mv /opt/PixInsight/bin/lib/libtensor* /opt/pi_lib_tmp
+	sudo rm /opt/PixInsight/bin/lib/libssh2.so
+	sudo rm /opt/PixInsight/bin/lib/libssh2.so.1
+	sudo rm /opt/PixInsight/bin/lib/libssh2.so.1.0.1
 
 WAKEUP=/lib/systemd/system/wakeup.service
 wakeup:
