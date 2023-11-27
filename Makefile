@@ -18,8 +18,11 @@ speedup:
 zfs:
 	sudo pacman -S --noconfirm --needed linux-headers linux-lts-headers
 	#yay -S --noconfirm --needed zfs-dkms
+	sudo zpool import data
+	sudo zpool set cachefile=/etc/zfs/zpool.cache data
 	sudo systemctl enable --now zfs-scrub-weekly@zroot.timer
 	sudo systemctl enable --now zfs.target
+	sudo systemctl enable --now zfs-import.target
 	sudo systemctl enable --now zfs-import-cache
 	sudo systemctl enable --now zfs-mount
 
