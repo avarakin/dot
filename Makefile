@@ -1,4 +1,6 @@
-desktop: base extra syncthing  nvidia
+desktop: speedup base extra syncthing kstars nvidia 
+
+
 
 astro_laptop: base astro
 
@@ -13,12 +15,20 @@ speedup:
 	git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay
 
 
+zfs:
+	sudo pacman -S --noconfirm --needed linux-headers linux-lts-headers
+	#yay -S --noconfirm --needed zfs-dkms
+	sudo systemctl enable --now zfs-scrub-weekly@zroot.timer
+	sudo systemctl enable --now zfs.target
+	sudo systemctl enable --now zfs-import-cache
+	sudo systemctl enable --now zfs-mount
+
 base:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
 	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
 	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp \
-	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils
+	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip
 	sudo systemctl enable --now cups.service
 
 
@@ -29,7 +39,9 @@ extra: /usr/bin/yay
 	yay -S --noconfirm --needed ttf-envy-code-r
 	yay -S --noconfirm --needed joplin-appimage
 	yay -S --noconfirm --needed visual-studio-code-bin
-
+	yay -S --noconfirm --needed kwin-bismuth
+	yay -S --noconfirm --needed realvnc-vnc-viewer
+	yay -S --noconfirm --needed freecad-weekly-appimage
 
 esp32:
 	pip3 install pyserial
@@ -124,8 +136,8 @@ astap:
 #These are applications for Desktop computer
 desktop:
 	-yay -S --noconfirm --needed  dropbox
-	-yay -S --noconfirm --needed  teams
 	-yay -S --noconfirm --needed  zoom
+#	-yay -S --noconfirm --needed  teams
 
 #support suspend for CUDA
 nvidia:
