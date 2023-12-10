@@ -30,11 +30,19 @@ base:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
 	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
-	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp \
+	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab \
 	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip
 	sudo systemctl enable --now cups.service
+	systemctl enable --now cronie.service
 
 
+
+timeshift:
+	sudo pacman -S --noconfirm --needed  timeshift grub-btrfs timeshift-autosnap
+	#Modify line to be like this:  ExecStart=/usr/bin/grub-btrfsd --syslog --timeshift-auto
+	sudo systemctl edit --full grub-btrfsd
+	sudo systemctl enable grub-btrfsd
+	sudo grub-mkconfig -o /boot/grub/grub.cfg
 
 extra: /usr/bin/yay
 	yay -S --noconfirm --needed google-chrome
@@ -44,7 +52,7 @@ extra: /usr/bin/yay
 	yay -S --noconfirm --needed visual-studio-code-bin
 	yay -S --noconfirm --needed kwin-bismuth
 	yay -S --noconfirm --needed realvnc-vnc-viewer
-	yay -S --noconfirm --needed freecad-weekly-appimage
+	yay -S --noconfirm --needed freecad-appimage
 
 esp32:
 	pip3 install pyserial
