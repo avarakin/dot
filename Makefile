@@ -25,13 +25,12 @@ zfs:
 	sudo systemctl enable --now zfs-import.target
 	sudo systemctl enable --now zfs-import-cache
 	sudo systemctl enable --now zfs-mount
-
 base:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
 	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
 	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab \
-	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip
+	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip ttf-jetbrains-mono-nerd picom
 	sudo systemctl enable --now cups.service
 	systemctl enable --now cronie.service
 
@@ -153,7 +152,7 @@ desktop:
 #support suspend for CUDA
 nvidia:
 	sudo pacman -S --noconfirm --needed nvidia nvidia-lts nvidia-settings nvidia-utils tensorflow-cuda
-	exit 1
+#	exit 1
 	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
 	sudo systemctl enable nvidia-suspend.service
 	sudo systemctl enable nvidia-hibernate.service
