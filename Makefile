@@ -181,3 +181,24 @@ wakeup:
 	sudo systemctl enable wakeup.service
 	sudo systemctl start wakeup.service
 
+#fix zfs auto mounting issue. Run this as root
+zfs:
+	cat <<EOF > /etc/systemd/system/zfs-import-race-condition-fix.service
+	[Unit]
+	DefaultDependencies=no
+	Before=zfs-import-scan.service
+	Before=zfs-import-cache.service
+	After=systemd-modules-load.service
+	
+	[Service]
+	Type=oneshot
+	RemainAfterExit=yes
+	ExecStart=/bin/cat /dev/null
+	
+	[Install]
+	WantedBy=zfs-import.target
+	EOF
+	systemctl enable zfs-import-race-condition-fix
+	echo "zfs" > /etc/modules-load.d/zfs.conf
+
+
