@@ -10,6 +10,9 @@ from qtile_extras import widget
 from qtile_extras.widget.decorations import PowerLineDecoration
 from qtile_extras.widget.decorations import RectDecoration
 from qtile_extras import widget
+from nvidiaSensors2 import NvidiaSensors2
+
+
 
 @lazy.function 
 def decrease(qtile):
@@ -244,10 +247,12 @@ screens = [
                 widget.ThermalSensor(tag_sensor='Tccd1', update_interval=1),
                 widget.CPU(),
                 widget.CPUGraph(),
-                widget.NvidiaSensors(format='GPU {perf}%'),
 
-                widget.TextBox(text = "", font = "JetBrainsMono Nerd Font",),
-                widget.Memory(),
+                NvidiaSensors2(sensors = ["utilization.gpu", "temperature.gpu"], format = "GPU: {utilization_gpu}/{temperature_gpu}"),
+
+#                widget.TextBox(text = "", font = "JetBrainsMono Nerd Font",),
+#                widget.Memory(),
+                widget.TextBox(text = "Mem",),
                 widget.MemoryGraph(),
 
                 widget.TextBox(text = "🖧", font = "JetBrainsMono Nerd Font",),
