@@ -193,7 +193,7 @@ zfs:
 	[Service]
 	Type=oneshot
 	RemainAfterExit=yes
-	ExecStart=/bin/cat /dev/null
+	ExecStart=/usr/bin/sleep 10
 	
 	[Install]
 	WantedBy=zfs-import.target
