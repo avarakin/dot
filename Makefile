@@ -17,9 +17,9 @@ speedup:
 
 zfs:
 	sudo pacman -S --noconfirm --needed linux-headers linux-lts-headers
-	#yay -S --noconfirm --needed zfs-dkms
-	sudo zpool import data
-	sudo zpool set cachefile=/etc/zfs/zpool.cache data
+	yay -S --noconfirm --needed zfs-dkms
+	sudo zpool import data1
+	sudo zpool set cachefile=/etc/zfs/zpool.cache data1
 	sudo systemctl enable --now zfs-scrub-weekly@zroot.timer
 	sudo systemctl enable --now zfs.target
 	sudo systemctl enable --now zfs-import.target
@@ -32,8 +32,12 @@ base:
 	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab \
 	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
 	sudo systemctl enable --now cups.service
-	systemctl enable --now cronie.service
+	sudo systemctl enable --now cronie.service
 
+
+resolve:
+	yay -S --noconfirm --needed  davinci-resolve-studio
+	sudo chmod -R 7777 /opt/resolve/.license/
 
 
 timeshift:
@@ -49,9 +53,14 @@ extra: /usr/bin/yay
 	yay -S --noconfirm --needed ttf-envy-code-r
 	yay -S --noconfirm --needed joplin-appimage
 	yay -S --noconfirm --needed visual-studio-code-bin
-	yay -S --noconfirm --needed kwin-bismuth
+#yay -S --noconfirm --needed kwin-bismuth
 	yay -S --noconfirm --needed realvnc-vnc-viewer
 	yay -S --noconfirm --needed freecad-appimage
+	yay -S --noconfirm --needed kwin-scripts-krohnkite-git
+	yay -S --noconfirm --needed dropbox
+	sudo pacman -S --noconfirm --needed qtile
+	yay -S --noconfirm --needed qtile-extras
+
 
 esp32:
 	pip3 install pyserial
@@ -151,7 +160,7 @@ desktop:
 
 #support suspend for CUDA
 nvidia:
-	sudo pacman -S --noconfirm --needed nvidia nvidia-lts nvidia-settings nvidia-utils tensorflow-cuda
+	sudo pacman -S --noconfirm --needed nvidia-settings nvidia-utils tensorflow-cuda
 #	exit 1
 	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
 	sudo systemctl enable nvidia-suspend.service
@@ -160,11 +169,12 @@ nvidia:
 	sudo systemctl start nvidia-suspend.service
 
 PI:
-	sudo mkdir /opt/pi_lib_tmp
-	sudo mv /opt/PixInsight/bin/lib/libtensor* /opt/pi_lib_tmp
-	sudo rm /opt/PixInsight/bin/lib/libssh2.so
-	sudo rm /opt/PixInsight/bin/lib/libssh2.so.1
-	sudo rm /opt/PixInsight/bin/lib/libssh2.so.1.0.1
+	sudo pacman -S --noconfirm --needed cuda cudnn tensorflow-cuda
+	sudo rm /opt/PixInsight/bin/lib/libtensor* 
+	sudo rm /opt/PixInsight/bin/lib/libssh2.*
+	sudo rm /opt/PixInsight/bin/lib/libssl*
+	sudo rm /opt/PixInsight/bin/lib/libcrypto*
+
 
 WAKEUP=/lib/systemd/system/wakeup.service
 wakeup:
@@ -182,7 +192,7 @@ wakeup:
 	sudo systemctl start wakeup.service
 
 #fix zfs auto mounting issue. Run this as root
-zfs:
+zfs-fix:
 	cat <<EOF > /etc/systemd/system/zfs-import-race-condition-fix.service
 	[Unit]
 	DefaultDependencies=no

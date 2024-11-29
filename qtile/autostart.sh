@@ -4,5 +4,7 @@ dropbox &
 ksnip &
 #flameshot &
 telegram-desktop &
+nm-applet &
+arandr &
 
 
