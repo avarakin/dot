@@ -1,16 +1,25 @@
+@import "theme.css";
+
 * {
     border: none;
     border-radius: 0px;
     font-family: "Roboto Condensed";
     font-weight: bold;
-    font-size: 16px;
+    font-size: 20px;
     min-height: 12px;
+    color: @main-fg;
+    background: @bar-bg;
+    opacity: 1;
 }
 
-@import "theme.css";
+
+
+
 
 window#waybar {
     background: @bar-bg;
+    background-color: @bar-bg;
+    opacity: 1;
 }
 
 tooltip {
@@ -33,6 +42,10 @@ tooltip {
     margin-right: 0px;
     color: @main-fg;
     animation: ws_normal 20s ease-in-out 1;
+    background: @bar-bg;
+    opacity: 1;
+
+
 }
 
 #workspaces button.active {
@@ -95,8 +108,26 @@ tooltip {
 }
 
 #backlight,
+#modules-center,
 #battery,
 #bluetooth,
+#temperature,
+#disk,
+#custom-os_button,
+#custom-sleep,
+#custom-system,
+#custom-files, 
+#custom-system_monitor, 
+#custom-calc, 
+#custom-resolve, 
+#custom-browser, 
+#custom-terminal, 
+#custom-octopi, 
+#custom-PI, 
+#custom-cliphist, 
+#custom-code, 
+#custom-move_to_workspace,
+#custom-gpu,
 #custom-cliphist,
 #clock,
 #custom-cpuinfo,

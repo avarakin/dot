@@ -5,18 +5,26 @@
     "exclusive": true,
     "gtk-layer-shell": true,
     "margin-bottom": -1,
+    "reload_style_on_change": true,
     "passthrough": false,
-    "height": 41,
+    "height": 42,
     "modules-left": [
-        "custom/os_button",
-	 "custom/icon2", "custom/icon3", "custom/icon4", "custom/icon6", "custom/icon8", "custom/icon9", "custom/icon10", "custom/icon11", "custom/icon12", "custom/icon13", "custom/icon14",
+        "custom/padd", "custom/l_end", "custom/os_button",
+	 "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", "custom/code", "custom/move_to_workspace",
         "hyprland/workspaces",
-        "wlr/taskbar"
+        "custom/r_end"
     ],
-    "modules-center": [],
+
+
+	"modules-center": ["custom/padd","custom/l_end","wlr/taskbar","custom/r_end","custom/padd"],
+
+
+
     "modules-right": [
+        "custom/padd","custom/l_end",
         "cpu",
         "temperature",
+        "custom/gpu",
         "memory",
         "disk",
         "tray",
@@ -24,7 +32,10 @@
         "network",
         "battery",
         "hyprland/language",
-        "clock"
+        "clock",
+        "custom/system" ,
+        "custom/sleep",
+        "custom/r_end","custom/padd"
     ],
     "hyprland/language": {
         "format": "{}",
@@ -43,15 +54,24 @@
     "custom/os_button": {
         "format": "",
 	"min-length": 5,
-        "on-click": "wofi --show drun",
+        "on-click": "rofi -show drun",
         "tooltip": false
     },
+
+    "custom/sleep": {
+        "format": "",
+	"min-length": 5,
+        "on-click": "systemctl suspend"
+    },
+
+
     "cpu": {
-        "interval": 5,
+        "interval": 1,
         "format": "  {usage}%",
         "max-length": 10
     },
     "temperature": {
+	"interval": 1,
         "hwmon-path-abs": "/sys/devices/platform/coretemp.0/hwmon",
         "input-filename": "temp2_input",
         "critical-threshold": 75,
@@ -67,6 +87,7 @@
         "unit": "GB",
         "tooltip-format":  "Available {free} of {total}"
     },
+
     "memory": {
         "interval": 10,
         "format": "  {percentage}%",
@@ -74,14 +95,24 @@
         "tooltip": true,
         "tooltip-format": "RAM - {used:0.1f}GiB used"
     },
+    
+
+    "custom/gpu": {
+        "interval": 5,
+        "format": "   {}  ",
+        "exec": "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used --format=csv,noheader"
+    },
+    
+
     "wlr/taskbar": {
         "format": "{icon} {title:.17}",
         "icon-size": 28,
         "spacing": 3,
+        "on-click-right": "maximize",
         "on-click-middle": "close",
         "tooltip-format": "{title}",
         "ignore-list": [],
-        "on-click": "activate"
+        "on-click": "minimize-raise"
     },
     "tray": {
         "icon-size": 18,
@@ -89,7 +120,7 @@
     },
     "clock": {
         "interval": 1,
-     	"format": "      {:%R:%S %d.%m.%Y}",
+     	"format": "      {:%R:%S %m/%d/%Y}",
         "tooltip-format": "<tt><small>{calendar}</small></tt>",
         "calendar": {
        	    "mode": "year",
@@ -165,35 +196,33 @@
         "on-click": "pwvucontrol"
     },
 
-    "custom/icon2": {
+    "custom/files": {
         "format": "{} 󰉋 ",
         "tooltip": false,
-        "on-click": "nautilus",
-        "on-click-right": "kitty -e ranger"
+        "on-click": "dolphin",
+        "on-click-right": "nautilus"
     },
-    "custom/icon3": {
+    "custom/system_monitor": {
         "format": "{} 󰨇 ",
         "tooltip": false,
         "on-click": "gnome-system-monitor",
-        "on-click-right": "kitty -e bashtop"
+        "on-click-right": "terminator -e htop"
     },
-    "custom/icon4": {
+    "custom/calc": {
         "format": "{}  ",
         "on-click": "gnome-calculator",
         "on-click-right": "kitty -e bc"
     },
-    "custom/icon6": {
+    "custom/resolve": {
         "format": "{} 󰕼 ",
         "on-click": "/opt/resolve/bin/resolve",
-        "on-click-right": "lollypop"
     },
-    "custom/icon8": {
+    "custom/browser": {
         "format": "{} 󰈹 ",
         "tooltip": false,
         "on-click": "google-chrome-stable",
-        "on-click-right": "chrome"
     },
-    "custom/icon9": {
+    "custom/terminal": {
         "format": "{}  ",
         "on-click": "terminator"
     },
@@ -202,33 +231,77 @@
         "tooltip": false,
         "on-click": "/usr/bin/octopi"
     },
-    "custom/icon11": {
+    "custom/PI": {
         "format": "{}  ",
         "tooltip": false,
         "on-click": "/opt/PixInsight/bin/PixInsight.sh"
     },
-    "custom/icon12": {
+    "custom/cliphist": {
         "format": "{} 󰆒 ",
         "tooltip": false,
         "on-click": "cliphist list | rofi -dmenu -hover-select -me-select-entry '' -me-accept-entry MousePrimary | cliphist decode | wl-copy"
     },
-    "custom/icon13": {
+    "custom/code": {
         "format": "{} 󰎚 ",
         "tooltip": false,
         "on-click": "code"
     },
-    "custom/icon14": {
+    "custom/system": {
         "format": "{}  ",
         "tooltip": false,
-        "on-click": "geany $HOME/.config/hypr/hyprland.conf",
-        "on-click-middle": "geany $HOME/.config/waybar/style.css",
-        "on-click-right": "geany $HOME/.config/waybar/config"
+        "on-click": "nwg-bar"
     },
-    "custom/icon15": {
+    "custom/move_to_workspace": {
         "format": "{}  ",
         "tooltip": false,
         "on-click": "hyprctl dispatch movetoworkspace -1",
         "on-click-right": "hyprctl dispatch movetoworkspace +1"
+    },
+
+
+// modules for padding //
+
+    "custom/l_end": {
+        "format": " ",
+        "interval" : "once",
+        "tooltip": false
+    },
+
+    "custom/r_end": {
+        "format": " ",
+        "interval" : "once",
+        "tooltip": false
+    },
+
+    "custom/sl_end": {
+        "format": " ",
+        "interval" : "once",
+        "tooltip": false
+    },
+
+    "custom/sr_end": {
+        "format": " ",
+        "interval" : "once",
+        "tooltip": false
+    },
+
+    "custom/rl_end": {
+        "format": " ",
+        "interval" : "once",
+        "tooltip": false
+    },
+
+    "custom/rr_end": {
+        "format": " ",
+        "interval" : "once",
+        "tooltip": false
+    },
+
+    "custom/padd": {
+        "format": "  ",
+        "interval" : "once",
+        "tooltip": false
     }
+
 
 }
