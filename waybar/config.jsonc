@@ -10,13 +10,13 @@
     "height": 42,
     "modules-left": [
         "custom/padd", "custom/l_end", "custom/os_button",
-	 "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", "custom/code", "custom/move_to_workspace",
-        "hyprland/workspaces",
+	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", 
+        "custom/code", "custom/move_to_workspace",
+        "hyprland/workspaces", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end", "wlr/taskbar",
         "custom/r_end"
     ],
 
 
-	"modules-center": ["custom/padd","custom/l_end","wlr/taskbar","custom/r_end","custom/padd"],
 
 
 
@@ -24,12 +24,13 @@
         "custom/padd","custom/l_end",
         "cpu",
         "temperature",
+        "custom/cpu_fan",
         "custom/gpu",
+        "custom/gpu_fan",
         "memory",
         "disk",
         "tray",
         "pulseaudio",
-        "network",
         "battery",
         "hyprland/language",
         "clock",
@@ -95,14 +96,25 @@
         "tooltip": true,
         "tooltip-format": "RAM - {used:0.1f}GiB used"
     },
-    
-
+ 
+ 
     "custom/gpu": {
         "interval": 5,
-        "format": "   {}  ",
+        "format": "   {}",
         "exec": "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used --format=csv,noheader"
     },
+
+    "custom/cpu_fan": {
+        "interval": 1,
+        "format": " {} ",
+        "exec": "sensors  | grep cpu_fan | sed 's/cpu_fan://'| tr -d ' '"
+    },
     
+    "custom/gpu_fan": {
+        "interval": 1,
+        "format": ",{} ",
+        "exec": "sensors  | grep gpu_fan | sed 's/gpu_fan://' | tr -d ' '"
+    },
 
     "wlr/taskbar": {
         "format": "{icon} {title:.17}",

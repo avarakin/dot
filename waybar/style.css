@@ -5,7 +5,7 @@
     border-radius: 0px;
     font-family: "Roboto Condensed";
     font-weight: bold;
-    font-size: 20px;
+    font-size: 18px;
     min-height: 12px;
     color: @main-fg;
     background: @bar-bg;
@@ -124,6 +124,8 @@ tooltip {
 #custom-terminal, 
 #custom-octopi, 
 #custom-PI, 
+#custom-cpu_fan, 
+#custom-gpu_fan, 
 #custom-cliphist, 
 #custom-code, 
 #custom-move_to_workspace,
