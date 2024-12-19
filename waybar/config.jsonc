@@ -25,6 +25,7 @@
         "cpu",
         "temperature",
         "custom/cpu_fan",
+        "custom/cpu_turbo",
         "custom/gpu",
         "custom/gpu_fan",
         "memory",
@@ -113,7 +114,10 @@
     "custom/gpu_fan": {
         "interval": 1,
         "format": ",{} ",
-        "exec": "sensors  | grep gpu_fan | sed 's/gpu_fan://' | tr -d ' '"
+        "exec": "sensors  | grep gpu_fan | sed 's/gpu_fan://' | tr -d ' '",
+        "on-click-right": "echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost",
+        "on-click": "echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost"
+        
     },
 
     "wlr/taskbar": {
@@ -269,6 +273,18 @@
         "on-click": "hyprctl dispatch movetoworkspace -1",
         "on-click-right": "hyprctl dispatch movetoworkspace +1"
     },
+
+
+    "custom/cpu_turbo": {
+        "interval": 1,
+        "format": " {} ",
+        "exec": "cat /sys/devices/system/cpu/cpufreq/boost | sed 's/0/Normal/;s/1/Turbo /'",
+        "on-click": "echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost",
+        "on-click-right": "echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost"
+    },
+
+
+    
 
 
 // modules for padding //
