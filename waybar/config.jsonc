@@ -9,14 +9,12 @@
     "passthrough": false,
     "height": 42,
     "modules-left": [
-        "custom/padd", "custom/l_end", "custom/os_button",
+        "custom/padd", "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc",
 	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", 
         "custom/code", "custom/move_to_workspace",
         "hyprland/workspaces", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end", "wlr/taskbar",
         "custom/r_end"
     ],
-
-
 
 
 
@@ -73,7 +71,7 @@
         "max-length": 10
     },
     "temperature": {
-	"interval": 1,
+	"interval": 3,
         "hwmon-path-abs": "/sys/devices/platform/coretemp.0/hwmon",
         "input-filename": "temp2_input",
         "critical-threshold": 75,
@@ -209,7 +207,7 @@
                 " "
             ]
         },
-        "on-click": "pwvucontrol"
+        "on-click": "pavucontrol"
     },
 
     "custom/files": {
@@ -229,9 +227,20 @@
         "on-click": "gnome-calculator",
         "on-click-right": "kitty -e bc"
     },
+
+    "custom/joplin": {
+        "format": "{} J ",
+        "on-click": "joplin-desktop"
+    },
+
+    "custom/vnc": {
+        "format": "{} 🖧 ",
+        "on-click": "vncviewer"
+    },
+
     "custom/resolve": {
         "format": "{} 󰕼 ",
-        "on-click": "/opt/resolve/bin/resolve",
+        "on-click": " __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve"
     },
     "custom/browser": {
         "format": "{} 󰈹 ",

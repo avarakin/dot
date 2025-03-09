@@ -56,6 +56,7 @@ extra: /usr/bin/yay
 #yay -S --noconfirm --needed kwin-bismuth
 	yay -S --noconfirm --needed realvnc-vnc-viewer
 	yay -S --noconfirm --needed freecad-appimage
+	sudo pacman -S --noconfirm --needed prusa-slicer
 	yay -S --noconfirm --needed kwin-scripts-krohnkite-git
 	yay -S --noconfirm --needed dropbox
 	sudo pacman -S --noconfirm --needed qtile

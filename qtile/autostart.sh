@@ -5,6 +5,7 @@ ksnip &
 #flameshot &
 telegram-desktop &
 nm-applet &
-arandr &
+#arandr &
+~/.screenlayout/external.sh &
 
 

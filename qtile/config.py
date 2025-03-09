@@ -227,7 +227,6 @@ screens = [
                 widget.TaskList(padding=2, margin = 0 ,icon_size=18, max_title_width = 300, highlight_method="block" ),
 
 
-                widget.Volume( fmt = '{} '),
 
   
                 widget.TextBox("  ",  background=bg_color , foreground=fg_color, **powerline),
@@ -243,16 +242,30 @@ screens = [
                 widget.TextBox("🞮",  mouse_callbacks = {'Button1': close}, background=bg_color_alt1, **powerline),
 
 
+                #System stats
+
+                #CPU
                 widget.TextBox(text = "",  font = "JetBrainsMono Nerd Font", ),
                 widget.ThermalSensor(tag_sensor='Tccd1', update_interval=1),
+
+                widget.GenPollCommand (cmd="sensors  | grep cpu_fan | sed 's/cpu_fan://'| tr -d ' '", shell=True, update_interval=1),
+
+
                 widget.CPU(),
                 widget.CPUGraph(),
 
-                NvidiaSensors2(sensors = ["utilization.gpu", "temperature.gpu"], format = "GPU: {utilization_gpu}/{temperature_gpu}"),
+                widget.GenPollCommand (cmd="cat /sys/devices/system/cpu/cpufreq/boost | sed 's/0/Norml/;s/1/Turbo /'", shell=True, update_interval=1,
+                                      mouse_callbacks = {'Button1': lambda: qtile.spawn(["sh", "/home/alex/.config/qtile/turbo.sh","1"]),
+                                                         'Button3': lambda: qtile.spawn(["sh", "/home/alex/.config/qtile/turbo.sh","0"])
+                                                         }
+                                      ),
+                
 
-#                widget.TextBox(text = "", font = "JetBrainsMono Nerd Font",),
-#                widget.Memory(),
-                widget.TextBox(text = "Mem",),
+                widget.TextBox(text = "",  font = "JetBrainsMono Nerd Font", ),
+                widget.GenPollCommand (cmd="nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used --format=csv,noheader", shell=True, update_interval=1),
+
+
+                widget.TextBox(text = " ",),
                 widget.MemoryGraph(),
 
                 widget.TextBox(text = "🖧", font = "JetBrainsMono Nerd Font",),
@@ -260,9 +273,8 @@ screens = [
 
 
                 widget.OpenWeather( app_key="ec7ed767f9ca851136134f04d9a3177d",  location="Parsippany", format='{icon} {temp}°C {clouds_all}%  {wind_speed}km/h'),
-                widget.Sep(),
-                widget.KeyboardLayout(configured_keyboards=['us', 'ru'],foreground=fg_color),
-                widget.Sep(),
+                widget.Volume( fmt = '{} '),
+                widget.KeyboardLayout(configured_keyboards=['us', 'rus'],foreground=fg_color),
                 widget.CheckUpdates(display_format="{updates} Pkg Updates",
                                     colour_no_updates=fg_color,
                                     colour_have_updates="FF0000",
