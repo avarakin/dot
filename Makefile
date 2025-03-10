@@ -29,15 +29,18 @@ base:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
 	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
-	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab \
+	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab cronie\
 	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
 	sudo systemctl enable --now cups.service
 	sudo systemctl enable --now cronie.service
 
 
+#before proceeding, dowload distro file and place into yay cache directory for davincy package
 resolve:
 	yay -S --noconfirm --needed  davinci-resolve-studio
+	sudo mkdir /opt/resolve/.license
 	sudo chmod -R 7777 /opt/resolve/.license/
+
 
 
 timeshift:
@@ -53,7 +56,6 @@ extra: /usr/bin/yay
 	yay -S --noconfirm --needed ttf-envy-code-r
 	yay -S --noconfirm --needed joplin-appimage
 	yay -S --noconfirm --needed visual-studio-code-bin
-#yay -S --noconfirm --needed kwin-bismuth
 	yay -S --noconfirm --needed realvnc-vnc-viewer
 	yay -S --noconfirm --needed freecad-appimage
 	sudo pacman -S --noconfirm --needed prusa-slicer
@@ -61,7 +63,7 @@ extra: /usr/bin/yay
 	yay -S --noconfirm --needed dropbox
 	sudo pacman -S --noconfirm --needed qtile
 	yay -S --noconfirm --needed qtile-extras
-
+	yay -S --noconfirm --needed mergerfs
 
 esp32:
 	pip3 install pyserial
