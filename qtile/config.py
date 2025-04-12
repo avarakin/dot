@@ -136,6 +136,12 @@ keys = [
     Key([mod], "j", lazy.spawn("joplin-desktop"), desc="Launch Joplin"),
     Key([mod], "v", lazy.spawn("vncviewer"), desc="VNC"),
     Key([mod], "s", lazy.spawn("systemctl suspend"), desc="Suspend"),
+
+### Audio keys
+
+    Key([], "XF86AudioLowerVolume", lazy.spawn("amixer sset Master 5%-"), desc="Lower Volume by 5%"),
+    Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer sset Master 5%+"), desc="Raise Volume by 5%"),
+    Key([], "XF86AudioMute", lazy.spawn("amixer sset Master 1+ toggle"), desc="Mute/Unmute Volume"),    
 ]
 
 groups = [

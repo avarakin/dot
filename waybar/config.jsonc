@@ -16,8 +16,6 @@
         "custom/r_end"
     ],
 
-
-
     "modules-right": [
         "custom/padd","custom/l_end",
         "cpu",
@@ -34,7 +32,7 @@
         "hyprland/language",
         "clock",
         "custom/system" ,
-        "custom/sleep",
+//        "custom/sleep",
         "custom/r_end","custom/padd"
     ],
     "hyprland/language": {
@@ -212,73 +210,92 @@
 
     "custom/files": {
         "format": "{} 󰉋 ",
-        "tooltip": false,
+        "tooltip": true,
+        "tooltip-format": "Dolphin/Nautilus",
         "on-click": "dolphin",
         "on-click-right": "nautilus"
     },
     "custom/system_monitor": {
         "format": "{} 󰨇 ",
-        "tooltip": false,
+        "tooltip": true,
+        "tooltip-format": "System Monitor",
         "on-click": "gnome-system-monitor",
         "on-click-right": "terminator -e htop"
     },
     "custom/calc": {
+        "tooltip": true,
+        "tooltip-format": "Gnome Calculator",
         "format": "{}  ",
         "on-click": "gnome-calculator",
         "on-click-right": "kitty -e bc"
     },
 
     "custom/joplin": {
+        "tooltip": true,
+        "tooltip-format": "Joplin",
         "format": "{} J ",
         "on-click": "joplin-desktop"
     },
 
     "custom/vnc": {
+        "tooltip": true,
+        "tooltip-format": "VNC",
         "format": "{} 🖧 ",
         "on-click": "vncviewer"
     },
 
     "custom/resolve": {
+        "tooltip": true,
+        "tooltip-format": "Davinci Resolve",
         "format": "{} 󰕼 ",
         "on-click": " __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve"
     },
     "custom/browser": {
+        "tooltip": true,
+        "tooltip-format": "Chrome",
         "format": "{} 󰈹 ",
-        "tooltip": false,
         "on-click": "google-chrome-stable",
     },
     "custom/terminal": {
+        "tooltip": true,
+        "tooltip-format": "Terminal",
         "format": "{}  ",
         "on-click": "terminator"
     },
     "custom/icon10": {
+        "tooltip": true,
+        "tooltip-format": "Octopi",
         "format": "{} 󰏔 ",
-        "tooltip": false,
         "on-click": "/usr/bin/octopi"
     },
     "custom/PI": {
+        "tooltip": true,
+        "tooltip-format": "PixInsight",
         "format": "{}  ",
-        "tooltip": false,
         "on-click": "/opt/PixInsight/bin/PixInsight.sh"
     },
     "custom/cliphist": {
+        "tooltip": true,
+        "tooltip-format": "Clipboar History",
         "format": "{} 󰆒 ",
-        "tooltip": false,
         "on-click": "cliphist list | rofi -dmenu -hover-select -me-select-entry '' -me-accept-entry MousePrimary | cliphist decode | wl-copy"
     },
     "custom/code": {
+        "tooltip": true,
+        "tooltip-format": "VS Code",
         "format": "{} 󰎚 ",
-        "tooltip": false,
         "on-click": "code"
     },
     "custom/system": {
+        "tooltip": true,
+        "tooltip-format": "System Menu",
         "format": "{}  ",
-        "tooltip": false,
         "on-click": "nwg-bar"
     },
     "custom/move_to_workspace": {
+        "tooltip": true,
+        "tooltip-format": "Move to Workspace",
         "format": "{}  ",
-        "tooltip": false,
         "on-click": "hyprctl dispatch movetoworkspace -1",
         "on-click-right": "hyprctl dispatch movetoworkspace +1"
     },
