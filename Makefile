@@ -64,6 +64,7 @@ extra: /usr/bin/yay
 	sudo pacman -S --noconfirm --needed qtile
 	yay -S --noconfirm --needed qtile-extras
 	yay -S --noconfirm --needed mergerfs
+	yay -S --noconfirm --needed dnglab-bin
 
 esp32:
 	pip3 install pyserial
@@ -112,9 +113,12 @@ powerlink:
 
 scripts:
 	mkdir -p ~/.local/share/nemo/scripts
-	cp resize_for_CN ~/.local/share/nemo/scripts
+	ln -s `pwd`/raw_to_dng ~/.local/share/nemo/scripts
+	ln -s `pwd`/resize_for_CN ~/.local/share/nemo/scripts
+	ln -s `pwd`/recode_to_AV1 ~/.local/share/nemo/scripts
+
 	mkdir -p ~/.local/share/kservices5/ServiceMenus
-	cp  resize_for_cn.desktop ~/.local/share/kservices5/ServiceMenus/ 
+	ln -s  resize_for_cn.desktop ~/.local/share/kservices5/ServiceMenus/ 
 
 git:
 	sudo pacman -S git

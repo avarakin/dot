@@ -222,7 +222,7 @@ screens = [
                 widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("code")}),
                 widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("joplin-desktop")}),
                 widget.Image(filename = "~/.config/qtile/icons/octopi.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("/usr/bin/octopi")}),
-                widget.Image(filename = "~/.config/qtile/icons/freecad.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("freecad")}),
+                widget.Image(filename = "~/.config/qtile/icons/freecad.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("/home/alex/dot/qt.sh freecad", shell=True)}),
                 widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("google-chrome-stable")}),
                 widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("kstars")}),
                 widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),

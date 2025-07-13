@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo starting >> ~/recode.log
+echo "$*"  >> ~/recode.log
+
+for i in $*
+do
+        echo "$i" >> ~/recode.log
+        name=`echo $i| sed 's/\..*//'`
+        echo "$name" >> ~/recode.log
+        terminator -e "ffmpeg -y -i \"$i\" -c:v libsvtav1 -crf 25 -c:a mp3 \"$name\"_av1.mp4"
+done
+
+echo ending >> ~/recode.log
