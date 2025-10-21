@@ -112,11 +112,8 @@ powerlink:
 	echo 'source ~/powerlevel10k/powerlevel10k.zsh-theme' >> ~/.zshrc
 
 scripts:
-	mkdir -p ~/.local/share/nemo/scripts
-	ln -s `pwd`/raw_to_dng ~/.local/share/nemo/scripts
-	ln -s `pwd`/resize_for_CN ~/.local/share/nemo/scripts
-	ln -s `pwd`/recode_to_AV1 ~/.local/share/nemo/scripts
-
+	ln -s ~/dot/scripts  ~/.local/share/nemo/
+	ln -s ~/dot/scripts  ~/.local/share/nautilus/
 	mkdir -p ~/.local/share/kservices5/ServiceMenus
 	ln -s  resize_for_cn.desktop ~/.local/share/kservices5/ServiceMenus/ 
 
