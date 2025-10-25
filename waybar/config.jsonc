@@ -80,7 +80,7 @@
     "disk": {
         "interval": 30,
         "format": "󰋊 {percentage_used}%",
-        "path": "/",
+        "path": "/ssd",
         "tooltip": true,
         "unit": "GB",
         "tooltip-format":  "Available {free} of {total}"
@@ -97,13 +97,13 @@
  
     "custom/gpu": {
         "interval": 5,
-        "format": "   {}",
+        "format": "{}",
         "exec": "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used --format=csv,noheader"
     },
 
     "custom/cpu_fan": {
         "interval": 1,
-        "format": " {} ",
+        "format": "{}",
         "exec": "sensors  | grep cpu_fan | sed 's/cpu_fan://'| tr -d ' '"
     },
     
@@ -117,7 +117,7 @@
     },
 
     "wlr/taskbar": {
-        "format": "{icon} {title:.17}",
+        "format": "{icon} {title:.4}",
         "icon-size": 28,
         "spacing": 3,
         "on-click-right": "maximize",
@@ -158,8 +158,8 @@
     },
     "network": {
         "format-wifi": " {icon}",
-        "format-ethernet": "  ",
-        "format-disconnected": "󰌙",
+        "format-ethernet": "",
+        "format-disconnected":"󰌙",
         "format-icons": [
             "󰤯 ",
             "󰤟 ",
@@ -211,9 +211,9 @@
     "custom/files": {
         "format": "{} 󰉋 ",
         "tooltip": true,
-        "tooltip-format": "Dolphin/Nautilus",
-        "on-click": "dolphin",
-        "on-click-right": "nautilus"
+        "tooltip-format": "Nemo/Dolphin",
+        "on-click": "Nemo",
+        "on-click-right": "dolphin"
     },
     "custom/system_monitor": {
         "format": "{} 󰨇 ",
