@@ -35,11 +35,14 @@
 //        "custom/sleep",
         "custom/r_end","custom/padd"
     ],
-    "hyprland/language": {
-        "format": "{}",
-        "format-en": "ENG",
-        "format-ru": "РУС"
-    },
+
+"hyprland/language": {
+
+    "format": "{}",
+
+    "format-en": "US"
+
+},
     "hyprland/workspaces": {
          "format": "{icon}",
 	 "active-only": false,
@@ -117,7 +120,7 @@
     },
 
     "wlr/taskbar": {
-        "format": "{icon} {title:.4}",
+        "format": "{icon}",
         "icon-size": 28,
         "spacing": 3,
         "on-click-right": "maximize",
