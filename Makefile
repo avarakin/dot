@@ -29,7 +29,7 @@ base:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
 	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
-	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab cronie\
+	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab cronie \
 	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
 	sudo systemctl enable --now cups.service
 	sudo systemctl enable --now cronie.service
@@ -52,7 +52,7 @@ timeshift:
 
 extra: /usr/bin/yay
 	yay -S --noconfirm --needed google-chrome
-	yay -S --noconfirm --needed octopi
+#	yay -S --noconfirm --needed octopi
 	yay -S --noconfirm --needed ttf-envy-code-r
 	yay -S --noconfirm --needed joplin-appimage
 	yay -S --noconfirm --needed visual-studio-code-bin
@@ -60,6 +60,7 @@ extra: /usr/bin/yay
 	yay -S --noconfirm --needed freecad-appimage
 	sudo pacman -S --noconfirm --needed prusa-slicer
 	yay -S --noconfirm --needed kwin-scripts-krohnkite-git
+	sudo pacman -S --noconfirm --needed libappindicator-gtk3
 	yay -S --noconfirm --needed dropbox
 	sudo pacman -S --noconfirm --needed qtile
 	yay -S --noconfirm --needed qtile-extras
