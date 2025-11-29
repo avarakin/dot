@@ -1,6 +1,37 @@
 desktop: speedup base extra syncthing kstars nvidia 
 
+ubuntu:
+	sudo apt install mc synaptic vim terminator emacs geeqie gparted lm-sensors psensor flameshot openssh-server tilda rawtherapee  fonts-roboto hyprland hyprland-backgrounds flatpak cura zfsutils-linux mergerfs partitionmanager syncthing fish timeshift fakeroot pipewire-alsa -y
+	sudo snap install code --classic
+	sudo snap install freecad
+	sudo snap install zoom-client
+	sudo snap install telegram-desktop
+	sudo snap install joplin-desktop
 
+#Davinci:
+#Download makeresolvedeb https://www.danieltufvesson.com/makeresolvedeb
+
+ubuntu-nvidia:
+	sudo apt install build-essential
+	sudo apt install nvidia-driver-580
+	wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
+	sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
+	wget https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb
+	sudo dpkg -i cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb
+	sudo cp /var/cuda-repo-ubuntu2404-12-8-local/cuda-*-keyring.gpg /usr/share/keyrings/
+	sudo apt-get update
+	sudo apt-get -y install cuda-toolkit-12-8
+	wget https://developer.download.nvidia.com/compute/cudnn/9.8.0/local_installers/cudnn-local-repo-ubuntu2404-9.8.0_1.0-1_amd64.deb
+	sudo dpkg -i cudnn-local-repo-ubuntu2404-9.8.0_1.0-1_amd64.deb
+	sudo cp /var/cudnn-local-repo-ubuntu2404-9.8.0/cudnn-*-keyring.gpg /usr/share/keyrings/
+	sudo apt-get update
+	sudo apt-get -y install cudnn
+	cd ~
+	mkdir tensorflow
+	cd tensorflow
+	wget https://storage.googleapis.com/tensorflow/versions/2.18.0/libtensorflow-gpu-linux-x86_64.tar.gz
+	tar xvf libtensorflow-gpu-linux-x86_64.tar.gz
+	#then copy files to system /opt/PixInsight/bin/lib
 
 astro_laptop: base astro
 
