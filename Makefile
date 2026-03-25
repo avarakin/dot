@@ -1,6 +1,5 @@
 desktop: speedup base extra syncthing kstars nvidia 
 
-
 ubuntu:
 	sudo apt install mc synaptic vim terminator emacs geeqie gparted lm-sensors psensor flameshot openssh-server tilda rawtherapee  fonts-roboto hyprland hyprland-backgrounds flatpak cura zfsutils-linux mergerfs partitionmanager syncthing fish timeshift fakeroot pipewire-alsa -y
 	sudo snap install code --classic
@@ -13,9 +12,10 @@ ubuntu:
 #Download makeresolvedeb https://www.danieltufvesson.com/makeresolvedeb
 
 #This does not really work for PI. The following needs to be installed: CUDNN 8.9.1 and Tensorflow 2.15
+
 ubuntu-nvidia:
 	sudo apt install build-essential
-	sudo apt install nvidia-driver-580-open
+	sudo apt install nvidia-driver-580
 	wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
 	sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
 	wget https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb
@@ -63,8 +63,8 @@ zfs:
 base:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
-	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget \
-	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab cronie \
+	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget sof-firmware wireplumber \
+	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab cronie partitionmanager \
 	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
 	sudo systemctl enable --now cups.service
 	sudo systemctl enable --now cronie.service
