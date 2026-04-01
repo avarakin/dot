@@ -257,7 +257,7 @@
         "tooltip": true,
         "tooltip-format": "Chrome",
         "format": "{} 󰈹 ",
-        "on-click": "google-chrome-stable",
+        "on-click": "google-chrome-stable"
     },
     "custom/terminal": {
         "tooltip": true,
@@ -275,7 +275,7 @@
         "tooltip": true,
         "tooltip-format": "PixInsight",
         "format": "{}  ",
-        "on-click": "/opt/PixInsight/bin/PixInsight.sh"
+        "on-click": "fish -c /opt/PixInsight/bin/PixInsight.sh"
     },
     "custom/cliphist": {
         "tooltip": true,

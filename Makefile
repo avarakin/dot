@@ -1,7 +1,11 @@
 desktop: speedup base extra syncthing kstars nvidia 
 
 ubuntu:
-	sudo apt install mc synaptic vim terminator emacs geeqie gparted lm-sensors psensor flameshot openssh-server tilda rawtherapee  fonts-roboto hyprland hyprland-backgrounds flatpak cura zfsutils-linux mergerfs partitionmanager syncthing fish timeshift fakeroot pipewire-alsa -y
+	sudo apt update
+	sudo apt upgrade -y
+	sudo apt install baobab build-essential cura emacs fakeroot ffmpeg firefox fish flameshot flatpak fonts-dejavu fonts-font-awesome fonts-noto-color-emoji fonts-roboto fonts-roboto-fontface geeqie git \
+	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa libreoffice lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet nvidia-driver-580-open obs-studio openssh-server \
+	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic syncthing terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux
 	sudo snap install code --classic
 	sudo snap install freecad
 	sudo snap install zoom-client
@@ -23,17 +27,6 @@ ubuntu-nvidia:
 	sudo cp /var/cuda-repo-ubuntu2404-12-8-local/cuda-*-keyring.gpg /usr/share/keyrings/
 	sudo apt-get update
 	sudo apt-get -y install cuda-toolkit-12-8
-	wget https://developer.download.nvidia.com/compute/cudnn/9.8.0/local_installers/cudnn-local-repo-ubuntu2404-9.8.0_1.0-1_amd64.deb
-	sudo dpkg -i cudnn-local-repo-ubuntu2404-9.8.0_1.0-1_amd64.deb
-	sudo cp /var/cudnn-local-repo-ubuntu2404-9.8.0/cudnn-*-keyring.gpg /usr/share/keyrings/
-	sudo apt-get update
-	sudo apt-get -y install cudnn
-	cd ~
-	mkdir tensorflow
-	cd tensorflow
-	wget https://storage.googleapis.com/tensorflow/versions/2.18.0/libtensorflow-gpu-linux-x86_64.tar.gz
-	tar xvf libtensorflow-gpu-linux-x86_64.tar.gz
-	#then copy files to system /opt/PixInsight/bin/lib
 
 
 
