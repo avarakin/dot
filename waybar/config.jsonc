@@ -215,7 +215,7 @@
         "format": "{} 󰉋 ",
         "tooltip": true,
         "tooltip-format": "Nemo/Dolphin",
-        "on-click": "Nemo",
+        "on-click": "nemo",
         "on-click-right": "dolphin"
     },
     "custom/system_monitor": {
