@@ -19,6 +19,7 @@
     "modules-right": [
         "custom/padd","custom/l_end",
         "cpu",
+        "custom/cpu_graph",
         "temperature",
         "custom/cpu_fan",
         "custom/cpu_turbo",
@@ -79,6 +80,13 @@
         "tooltip": false,
         "format-critical": "({temperatureC}°C)",
         "format": "({temperatureC}°C)"
+    },
+    "custom/cpu_graph": {
+        "interval": 1,
+        "format": "{}",
+        "exec": "bash ~/.config/waybar/scripts/cpu_graph.sh",
+        "tooltip": true,
+        "tooltip-format": "CPU History Graph"
     },
     "disk": {
         "interval": 30,
