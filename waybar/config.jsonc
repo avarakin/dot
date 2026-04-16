@@ -11,7 +11,7 @@
     "modules-left": [
         "custom/padd", "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc",
 	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", 
-        "custom/code", "custom/move_to_workspace",
+        "custom/code", "custom/move_to_workspace", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
         "hyprland/workspaces", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end", "wlr/taskbar",
         "custom/r_end"
     ],
@@ -122,8 +122,8 @@
         "interval": 1,
         "format": ",{} ",
         "exec": "sensors  | grep gpu_fan | sed 's/gpu_fan://' | tr -d ' '",
-        "on-click-right": "echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost",
-        "on-click": "echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost"
+        "on-click-right": "echo 1 | tee /sys/devices/system/cpu/cpufreq/boost",
+        "on-click": "echo 0 | tee /sys/devices/system/cpu/cpufreq/boost"
         
     },
 
@@ -316,8 +316,8 @@
         "interval": 1,
         "format": " {} ",
         "exec": "cat /sys/devices/system/cpu/cpufreq/boost | sed 's/0/Normal/;s/1/Turbo /'",
-        "on-click": "echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost",
-        "on-click-right": "echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost"
+        "on-click": "echo 1 | tee /sys/devices/system/cpu/cpufreq/boost",
+        "on-click-right": "echo 0 | tee /sys/devices/system/cpu/cpufreq/boost"
     },
 
 
