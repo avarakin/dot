@@ -7,3 +7,6 @@ alias webcam "sudo modprobe v4l2loopback exclusive_caps=1 max_buffers=2 ; gphoto
 alias resolve "__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve"
 export SHELL=/usr/bin/fish
 alias gsu 'pkexec env WAYLAND_DISPLAY="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" XDG_RUNTIME_DIR=/run/user/0'
+export ANTHROPIC_AUTH_TOKEN="token"
+export ANTHROPIC_BASE_URL="http://localhost:8084"
+

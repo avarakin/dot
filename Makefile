@@ -11,6 +11,9 @@ ubuntu:
 	sudo snap install zoom-client
 	sudo snap install telegram-desktop
 	sudo snap install joplin-desktop
+	sudo systemctl start syncthing@alex.service
+	sudo systemctl enable syncthing@alex.service
+
 
 #Davinci:
 #Download makeresolvedeb https://www.danieltufvesson.com/makeresolvedeb
