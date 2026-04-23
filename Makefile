@@ -4,8 +4,9 @@ ubuntu:
 	sudo apt update
 	sudo apt upgrade -y
 	sudo apt install baobab build-essential cura emacs fakeroot ffmpeg firefox fish flameshot flatpak fonts-dejavu fonts-font-awesome fonts-noto-color-emoji fonts-roboto fonts-roboto-fontface geeqie git \
-	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa libreoffice lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet nvidia-driver-580-open obs-studio openssh-server \
-	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic syncthing terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux
+	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa libreoffice lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet openssh-server \
+	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic syncthing terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux  \
+	python3-pip python-is-python3 python3.13-venv wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard
 	sudo snap install code --classic
 	sudo snap install freecad
 	sudo snap install zoom-client

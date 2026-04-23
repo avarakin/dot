@@ -48,9 +48,16 @@
          "format": "{icon}",
 	 "active-only": false,
 	 "all-outputs" : true,
+	 "format-icons": {
+	     "1": "Main",
+	     "2": "PI",
+	     "3": "Dev",
+	     "4": "CAD",
+	     "5": "Video"
+	 },
           "persistent-workspaces": {
              "*": [1,2,3,4,5]
-    	  }	  
+    	  }
 
     },
     "custom/os_button": {
@@ -220,7 +227,7 @@
     },
 
     "custom/files": {
-        "format": "{} 󰉋 ",
+        "format": "{} ",
         "tooltip": true,
         "tooltip-format": "Nemo/Dolphin",
         "on-click": "nemo",
@@ -244,14 +251,14 @@
     "custom/joplin": {
         "tooltip": true,
         "tooltip-format": "Joplin",
-        "format": "{} J ",
+        "format": "{}   ",
         "on-click": "joplin-desktop"
     },
 
     "custom/vnc": {
         "tooltip": true,
         "tooltip-format": "VNC",
-        "format": "{} 🖧 ",
+        "format": "{}  ",
         "on-click": "vncviewer"
     },
 
@@ -264,13 +271,13 @@
     "custom/browser": {
         "tooltip": true,
         "tooltip-format": "Chrome",
-        "format": "{} 󰈹 ",
+        "format": "{}   ",
         "on-click": "google-chrome-stable"
     },
     "custom/terminal": {
         "tooltip": true,
         "tooltip-format": "Terminal",
-        "format": "{}  ",
+        "format": "{} ",
         "on-click": "terminator"
     },
     "custom/icon10": {
@@ -282,7 +289,7 @@
     "custom/PI": {
         "tooltip": true,
         "tooltip-format": "PixInsight",
-        "format": "{}  ",
+        "format": "{}  ",
         "on-click": "fish -c /opt/PixInsight/bin/PixInsight.sh"
     },
     "custom/cliphist": {

@@ -210,3 +210,65 @@ tooltip {
     margin-left: 9px;
     padding-left: 3px;
 }
+
+
+
+#custom-browser {
+  background-image: url("/usr/share/icons/hicolor/64x64/apps/google-chrome.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-PI {
+  background-image: url("/usr/share/icons/hicolor/64x64/apps/PixInsightBundle.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-vnc {
+  background-image: url("/usr/share/icons/hicolor/48x48/apps/vncviewer48x48.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+
+#custom-terminal {
+  background-image: url("/usr/share/icons/hicolor/32x32/apps/terminator.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-files {
+  background-image: url("/usr/share/icons/hicolor/32x32/apps/nemo.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+
+#custom-joplin {
+  background-image: url("/usr/share/icons/breeze-dark/apps/48/joplin.svg");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+
+
+

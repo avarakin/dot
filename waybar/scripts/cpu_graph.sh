@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# CPU graph script for waybar - displays last 10 CPU readings as sparkline
+# CPU graph script for waybar - displays last 5 CPU readings as sparkline
 CACHE_FILE="/tmp/cpu_history.dat"
-HISTORY_SIZE=10
+HISTORY_SIZE=5
 
 # Get current CPU usage percentage using top
 usage=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{printf "%.0f", 100 - $1}')
