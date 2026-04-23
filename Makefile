@@ -9,12 +9,15 @@ ubuntu:
 	python3-pip python-is-python3 python3.13-venv wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard
 	sudo snap install code --classic
 	sudo snap install freecad
+	sudo snap install firefox
+	sudo snap install kstars
+	sudo snap install open-webui
 	sudo snap install zoom-client
 	sudo snap install telegram-desktop
 	sudo snap install joplin-desktop
 	sudo systemctl start syncthing@alex.service
 	sudo systemctl enable syncthing@alex.service
-
+#	sudo flatpak install flathub com.obsproject.Studio
 
 #Davinci:
 #Download makeresolvedeb https://www.danieltufvesson.com/makeresolvedeb
