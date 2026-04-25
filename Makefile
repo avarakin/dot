@@ -6,7 +6,7 @@ ubuntu:
 	sudo apt install baobab build-essential cura emacs fakeroot ffmpeg firefox fish flameshot flatpak fonts-dejavu fonts-font-awesome fonts-noto-color-emoji fonts-roboto fonts-roboto-fontface geeqie git \
 	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa libreoffice lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet openssh-server \
 	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic syncthing terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux  \
-	python3-pip python-is-python3 python3.13-venv wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard
+	python3-pip python-is-python3  wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard
 	sudo snap install code --classic
 	sudo snap install freecad
 	sudo snap install firefox
@@ -17,16 +17,33 @@ ubuntu:
 	sudo snap install joplin-desktop
 	sudo systemctl start syncthing@alex.service
 	sudo systemctl enable syncthing@alex.service
+
+fonts:
+	ln -s $$HOME/dot/fonts $$HOME/.fonts
+	#Configure "DejaVu Sans Mono","Ubuntu Nerd Font Propo" in Code
+
+ollama:
+	curl -fsSL https://ollama.com/install.sh | sh
+	echo "Update ollama context length to 32k"
+	@grep -q "OLLAMA_CONTEXT_LENGTH" /etc/systemd/system/ollama.service || \
+	(sudo sed -i '/\[Service\]/a Environment="OLLAMA_CONTEXT_LENGTH=32768"' /etc/systemd/system/ollama.service) 
+	sudo systemctl daemon-reload
+	sudo systemctl restart ollama
+	echo "Updated context to 32k."
+	echo "Pointing models to /ssd/data/models"
+	-mv /usr/share/ollama/.ollama/models/ /usr/share/ollama/.ollama/models.old
+	-ln -s /ssd/data/models/ /usr/share/ollama/.ollama/
+claude:
+	curl -fsSL https://claude.ai/install.sh | bash
+
 #	sudo flatpak install flathub com.obsproject.Studio
 
 #Davinci:
 #Download makeresolvedeb https://www.danieltufvesson.com/makeresolvedeb
 
-#This does not really work for PI. The following needs to be installed: CUDNN 8.9.1 and Tensorflow 2.15
 
 ubuntu-nvidia:
-	sudo apt install build-essential
-	sudo apt install nvidia-driver-580
+	sudo ubuntu-drivers install
 	wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
 	sudo mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
 	wget https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb
@@ -34,6 +51,7 @@ ubuntu-nvidia:
 	sudo cp /var/cuda-repo-ubuntu2404-12-8-local/cuda-*-keyring.gpg /usr/share/keyrings/
 	sudo apt-get update
 	sudo apt-get -y install cuda-toolkit-12-8
+#After that install CUDNN 8.9.1 and Tensorflow 2.15
 
 
 
@@ -154,7 +172,6 @@ scripts:
 	ln -s  resize_for_cn.desktop ~/.local/share/kservices5/ServiceMenus/ 
 
 git:
-	sudo pacman -S git
 	git config --global user.email "avarakin@gmail.com"
 	git config --global user.name "Alex Varakin"
 	git config credential.helper 'cache --timeout=30000'
