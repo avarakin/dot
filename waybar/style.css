@@ -130,6 +130,7 @@ tooltip {
 #custom-gpu_fan, 
 #custom-cliphist, 
 #custom-code, 
+#custom-freecad, 
 #custom-move_to_workspace,
 #custom-gpu,
 #custom-cliphist,
@@ -168,6 +169,7 @@ tooltip {
     margin: 4px 0px 4px 0px;
     padding-left: 4px;
     padding-right: 4px;
+    min-width: 20px;
 }
 
 #workspaces,
@@ -214,7 +216,7 @@ tooltip {
 
 
 #custom-browser {
-  background-image: url("/usr/share/icons/hicolor/64x64/apps/google-chrome.png");
+  background-image: url("/home/alex/dot/qtile/icons/chrome.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
@@ -222,8 +224,18 @@ tooltip {
   margin: 4px 0px 4px 0px;
 }
 
+#custom-code {
+  background-image: url("/home/alex/dot/qtile/icons/code.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+
 #custom-PI {
-  background-image: url("/usr/share/icons/hicolor/64x64/apps/PixInsightBundle.png");
+  background-image: url("/home/alex/dot/qtile/icons/pixinsight.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
@@ -242,7 +254,7 @@ tooltip {
 
 
 #custom-terminal {
-  background-image: url("/usr/share/icons/hicolor/32x32/apps/terminator.png");
+  background-image: url("/home/alex/dot/qtile/icons/terminator.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
@@ -251,7 +263,16 @@ tooltip {
 }
 
 #custom-files {
-  background-image: url("/usr/share/icons/hicolor/32x32/apps/nemo.png");
+  background-image: url("/home/alex/dot/qtile/icons/nemo.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-freecad {
+  background-image: url("/home/alex/dot/qtile/icons/freecad.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
@@ -261,7 +282,7 @@ tooltip {
 
 
 #custom-joplin {
-  background-image: url("/usr/share/icons/breeze-dark/apps/48/joplin.svg");
+  background-image: url("/home/alex/dot/qtile/icons/joplin.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;

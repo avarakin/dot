@@ -11,7 +11,7 @@
     "modules-left": [
         "custom/padd", "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc",
 	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", 
-        "custom/code", "custom/move_to_workspace", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
+        "custom/code","custom/freecad","custom/move_to_workspace", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
         "hyprland/workspaces", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end", "wlr/taskbar",
         "custom/r_end"
     ],
@@ -19,7 +19,6 @@
     "modules-right": [
         "custom/padd","custom/l_end",
         "cpu",
-        "custom/cpu_graph",
         "temperature",
         "custom/cpu_fan",
         "custom/cpu_turbo",
@@ -251,7 +250,7 @@
     "custom/joplin": {
         "tooltip": true,
         "tooltip-format": "Joplin",
-        "format": "{}   ",
+        "format": "{}  ",
         "on-click": "joplin-desktop"
     },
 
@@ -301,9 +300,16 @@
     "custom/code": {
         "tooltip": true,
         "tooltip-format": "VS Code",
-        "format": "{} 󰎚 ",
+        "format": "{}  ",
         "on-click": "code"
     },
+    "custom/freecad": {
+        "tooltip": true,
+        "tooltip-format": "FreeCAD",
+        "format": "{}  ",
+        "on-click": "freecad"
+    },
+
     "custom/system": {
         "tooltip": true,
         "tooltip-format": "System Menu",
