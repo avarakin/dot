@@ -5,7 +5,7 @@ ubuntu:
 	sudo apt upgrade -y
 	sudo apt install baobab build-essential cura emacs fakeroot ffmpeg firefox fish flameshot flatpak fonts-dejavu fonts-font-awesome fonts-noto-color-emoji fonts-roboto fonts-roboto-fontface geeqie git \
 	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa libreoffice lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet openssh-server \
-	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic syncthing terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux  \
+	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux  \
 	python3-pip python-is-python3  wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard
 	sudo snap install code --classic
 	sudo snap install freecad
@@ -15,6 +15,15 @@ ubuntu:
 	sudo snap install zoom-client
 	sudo snap install telegram-desktop
 	sudo snap install joplin-desktop
+
+ubuntu-syncthing:
+	sudo mkdir -p /etc/apt/keyrings
+	sudo curl -L -o /etc/apt/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable-v2" | sudo tee /etc/apt/sources.list.d/syncthing.list
+	sudo apt-get update
+	sudo apt-get install syncthing
+
+
 	sudo systemctl start syncthing@alex.service
 	sudo systemctl enable syncthing@alex.service
 
