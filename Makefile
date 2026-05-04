@@ -1,6 +1,15 @@
 desktop: speedup base extra syncthing kstars nvidia 
 
 
+ubuntu:
+	sudo apt install mc synaptic vim terminator emacs geeqie gparted lm-sensors psensor flameshot openssh-server tilda rawtherapee  fonts-roboto hyprland hyprland-backgrounds flatpak cura zfsutils-linux mergerfs partitionmanager syncthing -y
+	sudo snap install code --classic
+	sudo snap install freecad
+	sudo snap install zoom-client
+	sudo snap install telegram-desktop
+
+
+
 
 astro_laptop: base astro
 
