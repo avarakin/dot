@@ -9,15 +9,15 @@
     "passthrough": false,
     "height": 42,
     "modules-left": [
-        "custom/padd", "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc",
+        "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc",
 	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/octopi", "custom/PI", "custom/cliphist", 
-        "custom/code","custom/freecad","custom/move_to_workspace", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
-        "hyprland/workspaces", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end", "wlr/taskbar",
+        "custom/code","custom/freecad", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
+        "hyprland/workspaces", "custom/r_end", "custom/l_end", "wlr/taskbar",
         "custom/r_end"
     ],
 
     "modules-right": [
-        "custom/padd","custom/l_end",
+        "custom/l_end",
         "cpu",
         "temperature",
         "custom/cpu_fan",
@@ -33,7 +33,7 @@
         "clock",
         "custom/system" ,
 //        "custom/sleep",
-        "custom/r_end","custom/padd"
+        "custom/r_end"
     ],
 
 "hyprland/language": {
@@ -48,12 +48,12 @@
 	 "active-only": false,
 	 "all-outputs" : true,
 	 "format-icons": {
-	     "1": "Main",
-	     "2": "PI",
-	     "3": "Dev",
-	     "4": "Astro",
-         "5": "CAD",
-	     "6": "Video"
+	     "1": "",
+	     "2": "󰚚",
+	     "3": "",
+	     "4": "🔭",
+         "5": "📐",
+	     "6": "󰕼"
 	 },
           "persistent-workspaces": {
              "*": [1,2,3,4,5,6]
@@ -377,7 +377,7 @@
     },
 
     "custom/padd": {
-        "format": "  ",
+        "format": "",
         "interval" : "once",
         "tooltip": false
     }

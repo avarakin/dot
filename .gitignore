@@ -1,3 +1,6 @@
 .vscode/
 qtile/__pycache__/nvidiaSensors2.cpython-313.pyc
 qtile/__pycache__/config.cpython-313.pyc
+
+# Secrets
+secrets.fish

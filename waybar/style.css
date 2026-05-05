@@ -169,7 +169,7 @@ tooltip {
     margin: 4px 0px 4px 0px;
     padding-left: 4px;
     padding-right: 4px;
-    min-width: 20px;
+    min-width: 18px;
 }
 
 #workspaces,
@@ -283,6 +283,15 @@ tooltip {
 
 #custom-joplin {
   background-image: url("/home/alex/dot/qtile/icons/joplin.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-resolve {
+  background-image: url("/opt/resolve/graphics/DV_Resolve.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
