@@ -141,7 +141,7 @@
         "on-click-right": "maximize",
         "on-click-middle": "close",
         "tooltip-format": "{title}",
-        "ignore-list": [],
+        "ignore-list": ["wl-paste"],
         "on-click": "minimize-raise"
     },
     "tray": {
