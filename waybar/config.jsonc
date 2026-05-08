@@ -265,7 +265,7 @@
     "custom/resolve": {
         "tooltip": true,
         "tooltip-format": "Davinci Resolve",
-        "format": "{} 󰕼 ",
+        "format": "{} 󰕼 q",
         "on-click": " __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve"
     },
     "custom/browser": {
@@ -278,7 +278,7 @@
         "tooltip": true,
         "tooltip-format": "Terminal",
         "format": "{} ",
-        "on-click": "terminator"
+        "on-click": "ghostty"
     },
     "custom/icon10": {
         "tooltip": true,
