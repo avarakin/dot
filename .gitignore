@@ -4,3 +4,5 @@ qtile/__pycache__/config.cpython-313.pyc
 
 # Secrets
 secrets.fish
+commands.log
+hypr/monitor.conf

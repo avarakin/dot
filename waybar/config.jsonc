@@ -265,13 +265,13 @@
     "custom/resolve": {
         "tooltip": true,
         "tooltip-format": "Davinci Resolve",
-        "format": "{} 󰕼 q",
+        "format": "{} ",
         "on-click": " __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve"
     },
     "custom/browser": {
         "tooltip": true,
         "tooltip-format": "Chrome",
-        "format": "{}   ",
+        "format": "{} ",
         "on-click": "google-chrome-stable"
     },
     "custom/terminal": {
