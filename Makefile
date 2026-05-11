@@ -3,15 +3,17 @@ desktop: speedup base extra syncthing kstars nvidia
 ubuntu:
 	sudo apt update
 	sudo apt upgrade -y
-	sudo apt install baobab build-essential cura emacs fakeroot ffmpeg firefox fish flameshot flatpak fonts-dejavu fonts-font-awesome fonts-noto-color-emoji fonts-roboto fonts-roboto-fontface geeqie git \
-	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa libreoffice lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet openssh-server \
-	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux  \
-	python3-pip python-is-python3  wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard
+	sudo apt install baobab build-essential brightnessctl cliphist cura emacs fakeroot ffmpeg firefox fish flameshot flatpak fonts-dejavu fonts-font-awesome fonts-noto-color-emoji fonts-roboto fonts-roboto-fontface geeqie git \
+	gparted gphoto2 hyprland hyprland-backgrounds kitty libglu1-mesa lm-sensors make mc mergerfs mplayer mpv nemo network-manager-applet openssh-server \
+	partitionmanager pipewire-alsa psensor rawtherapee rofi synaptic terminator tilda timeshift v4l-utils v4l2loopback-dkms v4l2loopback-utils vim vlc-bin waybar zfsutils-linux \
+	python3-pip python-is-python3 wine pyenv swayidle nwg-bar xdg-desktop-portal-wlr hyprpaper npm grim slurp wl-clipboard \
+	gh ghostty obs-studio brightnessctl nvidia-cuda-toolkit cmake git-all pciutils curl
 	sudo snap install code --classic
 	sudo snap install freecad
 	sudo snap install firefox
 	sudo snap install kstars
 	sudo snap install open-webui
+	# TODO: open-webui not installed — check snap availability or use alternative
 	sudo snap install zoom-client
 	sudo snap install telegram-desktop
 	sudo snap install joplin-desktop
@@ -59,14 +61,6 @@ ubuntu-nvidia:
 	sudo apt-get update
 	sudo apt-get -y install cuda-toolkit-12-8
 #After that install CUDNN 8.9.1 and Tensorflow 2.15
-
-
-ubuntu:
-	sudo apt install mc synaptic vim terminator emacs geeqie gparted lm-sensors psensor flameshot openssh-server tilda rawtherapee  fonts-roboto hyprland hyprland-backgrounds flatpak cura zfsutils-linux mergerfs partitionmanager syncthing -y
-	sudo snap install code --classic
-	sudo snap install freecad
-	sudo snap install zoom-client
-	sudo snap install telegram-desktop
 
 
 

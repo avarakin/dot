@@ -12,7 +12,7 @@ export ANTHROPIC_BASE_URL="http://localhost:8080"
 export HUGGINGFACE_HUB_CACHE=/ssd/models/hf
 export HF_HUB_CACHE=/ssd/models/hf
 abbr cl claude --dangerously-skip-permissions
-abbr llama llama-server -hf unsloth/Qwen3.6-35B-A3B-GGUF -t 16 --ctx-size 128000 --cache-type-k q8_0 --cache-type-v q8_0 --flash-attn on --reasoning off --jinja --batch-size 32768 --ubatch-size 2048 --cont-batching --no-context-shift --defrag-thold 0.1
+abbr llama llama-server -hf unsloth/Qwen3.6-35B-A3B-GGUF --host 0.0.0.0 -t 16 --ctx-size 128000 --cache-type-k q8_0 --cache-type-v q8_0 --flash-attn on --reasoning off --jinja --batch-size 32768 --ubatch-size 2048 --cont-batching --no-context-shift --defrag-thold 0.1
 
 abbr llama1 llama-server \
 --model "$MODEL" \
