@@ -17,6 +17,11 @@ ubuntu:
 	sudo snap install zoom-client
 	sudo snap install telegram-desktop
 	sudo snap install joplin-desktop
+	sudo systemctl --user disable waybar.service
+	sudo systemctl --user --global disable waybar.service
+
+
+
 
 ubuntu-syncthing:
 	sudo mkdir -p /etc/apt/keyrings
