@@ -262,6 +262,15 @@
         "on-click": "vncviewer"
     },
 
+    "custom/obsidian": {
+        "tooltip": true,
+        "tooltip-format": "Obsidian",
+        "format": "{}  ",
+        "on-click": "obsidian"
+    },
+
+
+
     "custom/resolve": {
         "tooltip": true,
         "tooltip-format": "Davinci Resolve",
