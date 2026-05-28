@@ -18,8 +18,6 @@ import XMonad.Layout.Grid          -- for additional grid layout
 import XMonad.Layout.NoBorders     -- for fullscreen without borders
 import XMonad.Layout.Fullscreen    -- fullscreen mode
 
-
-
 import XMonad.Util.EZConfig
 import XMonad.Util.Loggers
 import XMonad.Util.Ungrab
@@ -53,22 +51,63 @@ myConfig = def
   `additionalKeysP` myKeys
 
 
-myKeys = [ ("M1-<Tab>"   , cycleRecentWindows [xK_Alt_L] xK_Tab xK_Tab ) -- classic alt-tab behaviour
-         , ("M-<Return>" , dwmpromote                                  ) -- swap the focused window and the master window
-         , ("M-<Tab>"    , toggleWS                                    ) -- toggle last workspace (super-tab)
-         , ("M-<Right>"  , nextWS                                      ) -- go to next workspace
-         , ("M-<Left>"   , prevWS                                      ) -- go to prev workspace
-         , ("M-S-<Right>", shiftToNext                                 ) -- move client to next workspace
-         , ("M-S-<Left>" , shiftToPrev                                 ) -- move client to prev workspace
-         , ("M-c"        , spawn "kcalc"                               ) -- calc
-         , ("M-<F2>"     , spawn "rofi -show run -theme Monokai"       ) -- rofi app launcher
-         , ("M-<F3>"     , spawn "rofi -show window -theme Monokai"    ) -- rofi window switch
-         , ("M-r"        , spawn "xmonad --restart"                    ) -- restart xmonad w/o recompiling
-         , ("M-g"        , spawn "google-chrome-stable"                              ) -- launch browser
-         , ("M-t"        , spawn "terminator"              ) -- launch system top
-         , ("M-f"        , spawn "xfe"                                 ) -- launch xfe file manager
-         , ("M-j"        , spawn "joplin"                          ) -- launch mindforger
-         ]
+-- | Build workspace switching bindings for each workspace.
+--   M-1..M-0     -> view workspace N
+--   M-S-1..M-S-0 -> shift window to workspace N
+myWSKeys :: [(String, X ())]
+myWSKeys =
+    [ (keyView i c,  windows (W.view i))
+    , (keyShift i c, windows (W.shift i))
+    | (i, c) <- zip [1..] "1234567890"
+    ]
+  where
+    keyView  n c = "M-"  ++ c : ""
+    keyShift n c = "M-S-" ++ c : ""
+
+
+-- | All keyboard shortcuts, migrated from Hyprland + preserved from existing Xmonad config.
+myKeys :: [(String, X ())]
+myKeys =
+    [ -- === Window management ===
+      ("M-<Q>"     , kill)                                                    -- kill focused window (Hyprland: M-Q)
+    , ("M-<X>"     , io (exitWith ExitSuccess))                              -- exit xmonad (Hyprland: M-X)
+    , ("M-<Return>", dwmpromote)                                             -- promote to master (Hyprland: M-Return)
+
+      -- === Layout / window state ===
+    , ("M-V"      , withFocused toggleFullscreen)                            -- toggle fullscreen (Hyprland: M-V)
+
+      -- === Launchers ===
+    , ("M-<Space>" , spawn "rofi -show run -theme Monokai")                  -- app launcher (Hyprland: M-Space)
+    , ("M-<F3>"    , spawn "rofi -show window -theme Monokai")               -- window switcher (Hyprland: M-F3)
+
+      -- === Navigation ===
+    , ("M-<Tab>"   , toggleWS)                                               -- toggle last workspace (Hyprland: M-Tab)
+    , ("M-<Right>" , nextWS)                                                 -- next workspace (Hyprland: M-Right)
+    , ("M-<Left>"  , prevWS)                                                 -- prev workspace (Hyprland: M-Left)
+    , ("M-S-<Right>", shiftToNext)                                           -- move window to next workspace
+    , ("M-S-<Left>" , shiftToPrev)                                           -- move window to prev workspace
+
+      -- === Apps ===
+    , ("M-<T>"     , spawn "ghostty")                                        -- terminal (Hyprland: M-T)
+    , ("M-<F>"     , spawn "dolphin")                                        -- file manager (Hyprland: M-F)
+    , ("M-<G>"     , spawn "google-chrome-stable")                           -- browser (Hyprland: M-G)
+    , ("M-<C>"     , spawn "kcalc")                                          -- calculator
+    , ("M-<J>"     , spawn "joplin")                                         -- notes (Hyprland: M-J)
+    , ("M-<R>"     , spawn "xmonad --restart")                               -- restart xmonad (Hyprland: M-R)
+
+      -- === Media keys (with Mod4 modifier like Hyprland) ===
+    , ("M-<XF86AudioRaiseVolume>", spawn "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+")
+    , ("M-<XF86AudioLowerVolume>", spawn "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-")
+    , ("M-<XF86AudioMute>"       , spawn "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
+    , ("M-<XF86AudioMicMute>"    , spawn "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle")
+    , ("M-<XF86AudioNext>"       , spawn "playerctl next")
+    , ("M-<XF86AudioPause>"      , spawn "playerctl play-pause")
+    , ("M-<XF86AudioPlay>"       , spawn "playerctl play-pause")
+    , ("M-<XF86AudioPrev>"       , spawn "playerctl previous")
+
+      -- === Workspace switching (generated) ===
+    ] ++ myWSKeys
+
 
 myLayout = smartBorders (
 --ResizableTall 1 (3/100) (1/2) []

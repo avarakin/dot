@@ -9,7 +9,7 @@
     "passthrough": false,
     "height": 42,
     "modules-left": [
-        "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc",
+        "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc", "custom/obsidian",
 	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/PI", "custom/cliphist", 
         "custom/code","custom/freecad", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
         "hyprland/workspaces", "custom/r_end", "custom/l_end", "wlr/taskbar",
