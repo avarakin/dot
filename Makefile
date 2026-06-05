@@ -22,6 +22,15 @@ ubuntu:
 	sudo apt install hyprland-qtutils
 	ln -s /home/alex/dot/fonts /home/alex/.fonts && fc-cache -f -v
 
+llama-cpp:
+	sudo apt-get update
+	sudo apt-get install pciutils build-essential cmake curl libcurl4-openssl-dev git-all -y
+	-git clone https://github.com/ggml-org/llama.cpp
+	cmake llama.cpp -B llama.cpp/build -DBUILD_SHARED_LIBS=OFF -DGGML_CUDA=ON
+	cmake --build llama.cpp/build --config Release -j --clean-first --target llama-bench  llama-cli llama-mtmd-cli llama-server llama-gguf-split 
+	mkdir -p $$HOME/ai/bin
+	cp llama.cpp/build/bin/llama-* $$HOME/ai/bin	
+
 
 ubuntu-syncthing:
 	sudo mkdir -p /etc/apt/keyrings

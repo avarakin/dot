@@ -116,6 +116,7 @@ tooltip {
 #custom-os_button,
 #custom-joplin,
 #custom-vnc,
+#custom-obsidian,
 #custom-sleep,
 #custom-system,
 #custom-files, 
@@ -245,6 +246,15 @@ tooltip {
 
 #custom-vnc {
   background-image: url("/usr/share/icons/hicolor/48x48/apps/vncviewer48x48.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-obsidian {
+  background-image: url("/usr/share/icons/hicolor/64x64/apps/obsidian.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
