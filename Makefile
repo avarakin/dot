@@ -19,8 +19,8 @@ ubuntu:
 	sudo snap install joplin-desktop
 	sudo systemctl --user disable waybar.service
 	sudo systemctl --user --global disable waybar.service
-
-
+	sudo apt install hyprland-qtutils
+	ln -s /home/alex/dot/fonts /home/alex/.fonts && fc-cache -f -v
 
 
 ubuntu-syncthing:

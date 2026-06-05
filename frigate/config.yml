@@ -1,0 +1,431 @@
+mqtt:
+
+  enabled: true
+  host: 192.168.1.202
+  # Optional: port (default: shown below)
+  port: 1883
+  #topic_prefix: frigate
+  user: mqtt
+  password: mqtt
+
+  # Optional: topic prefix (default: shown below)
+  # WARNING: must be unique if you are running multiple instances
+  #topic_prefix: frigate166
+  # Optional: client id (default: shown below)
+  # WARNING: must be unique if you are running multiple instances
+  #client_id: frigate166
+  # Optional: user
+  #user: mqtt
+  # Optional: password
+  # NOTE: Environment variables that begin with 'FRIGATE_' may be referenced in {}.
+  #       eg. password: '{FRIGATE_MQTT_PASSWORD}'
+  #password: mqtt
+
+
+
+#environment_vars:
+#  LIBVA_DRIVER_NAME: radeonsi
+
+
+cameras:
+  1_front:
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      input_args:
+        - -avoid_negative_ts
+        - make_zero
+        - -fflags
+        - nobuffer
+        - -flags
+        - low_delay
+        - -strict
+        - experimental
+        - -fflags
+        - +genpts+discardcorrupt
+        - -rw_timeout
+        - '5000000'
+        - -use_wallclock_as_timestamps
+        - '1'
+      inputs:
+        - path: 
+            rtmp://192.168.1.171/bcs/channel0_main.bcs?channel=0&stream=0&user=admin&password=
+          roles:
+            - detect
+            - record
+    detect:
+      width: 2560
+      height: 1920
+      fps: 5
+    objects:
+      track:
+        - person
+        - cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+    motion:
+      mask: 1,0,0,0,0,0.299,0.347,0.328,1,0.331
+      threshold: 30
+      contour_area: 10
+      improve_contrast: true
+  2_back:
+#    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      input_args:
+        - -avoid_negative_ts
+        - make_zero
+        - -fflags
+        - nobuffer
+        - -flags
+        - low_delay
+        - -strict
+        - experimental
+        - -fflags
+        - +genpts+discardcorrupt
+        - -rw_timeout
+        - '5000000'
+        - -use_wallclock_as_timestamps
+        - '1'
+      inputs:
+        - path: 
+            rtmp://192.168.1.246/bcs/channel0_main.bcs?channel=0&stream=0&user=admin&password=
+          roles:
+            - detect
+            - record
+    detect:
+      width: 2560
+      height: 1920
+      fps: 5
+    objects:
+      track:
+        - person
+        - cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+    motion:
+      mask:
+        - 1999,0,1946,755,1579,748,1075,377,1079,165,863,218,628,69,454,225,485,720,0,812,0,0
+
+
+  3_foyer:
+#    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      input_args:
+        - -avoid_negative_ts
+        - make_zero
+        - -fflags
+        - nobuffer
+        - -flags
+        - low_delay
+        - -strict
+        - experimental
+        - -fflags
+        - +genpts+discardcorrupt
+        - -rw_timeout
+        - '5000000'
+        - -use_wallclock_as_timestamps
+        - '1'
+      inputs:
+        - path: 
+            rtmp://192.168.1.205/bcs/channel0_main.bcs?channel=0&stream=0&user=admin&password=
+          roles:
+            - detect
+            - record
+    detect:
+      width: 2560
+      height: 1920
+      fps: 5
+    objects:
+      track:
+        - person
+        #- cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+  4_living:
+#    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      input_args:
+        - -avoid_negative_ts
+        - make_zero
+        - -fflags
+        - nobuffer
+        - -flags
+        - low_delay
+        - -strict
+        - experimental
+        - -fflags
+        - +genpts+discardcorrupt
+        - -rw_timeout
+        - '5000000'
+        - -use_wallclock_as_timestamps
+        - '1'
+      inputs:
+        - path: 
+            rtmp://192.168.1.187/bcs/channel0_main.bcs?channel=0&stream=0&user=admin&password=
+          roles:
+            - detect
+            - record
+    detect:
+      width: 2560
+      height: 1920
+      fps: 5
+    objects:
+      track:
+        - person
+        #- cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+  observatory:
+#    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      inputs:
+        - path: rtsp://admin:admin@192.168.1.18/cam1/mpeg4
+        #- path: rtsp://192.168.1.18:554/cam1/mpeg4
+          roles:
+            - detect
+            - record
+    detect:
+      width: 1920
+      height: 1080
+      fps: 5
+    objects:
+      track:
+        - person
+        - cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.77
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #hreshold: 0.77
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+  boiler:
+#    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      inputs:
+        - path: rtsp://admin:sasa0000@192.168.1.196:554/h264Preview_01_main
+          roles:
+            - detect
+            - record
+    detect:
+      width: 2560
+      height: 1920
+      fps: 5
+    objects:
+      track:
+        - person
+        - cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+  travel1:
+    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      inputs:
+        - path: rtsp://admin:sasa0000@192.168.1.141:554/h264Preview_01_main
+          roles:
+            - detect
+            - record
+    detect:
+      width: 1920
+      height: 1080
+      fps: 1
+    objects:
+      track:
+        - person
+        - cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+  travel2:
+    enabled: false
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+      inputs:
+        - path: rtsp://admin:sasa0000@192.168.1.235:554/h264Preview_01_main
+          roles:
+            - detect
+            - record
+    detect:
+      width: 1920
+      height: 1080
+      fps: 1
+    objects:
+      track:
+        - person
+        - cat
+      filters:
+        person:
+          min_area: 100000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+        cat:
+          min_area: 2000
+          #max_area: 100000
+          #min_score: 0.3
+          #threshold: 0.6
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true
+      retain:
+        default: 2
+    record:
+      enabled: true
+      continuous:
+        days: 2
+      motion:
+        days: 0
+detectors:
+  coral:
+    type: edgetpu
+
+detect:
+  enabled: true
+version: 0.17-0
