@@ -32,7 +32,14 @@ llama-cpp:
 	cp llama.cpp/build/bin/llama-* $$HOME/ai/bin	
 
 
-
+resolve:
+	unzip DaVinci_Resolve_Studio_21.0_Linux.zip
+	./DaVinci_Resolve_Studio_21.0_Linux.run --appimage-extract
+	sudo SKIP_PACKAGE_CHECK=1 ./squashfs-root/AppRun -i
+	sudo rm  /opt/resolve/libs/libgio* 
+	sudo rm  /opt/resolve/libs/libglib* 
+	sudo rm  /opt/resolve/libs/libgmodule*
+	sudo pacman -S --noconfirm --needed libxcrypt-compat
 
 ubuntu-syncthing:
 	sudo mkdir -p /etc/apt/keyrings
@@ -51,7 +58,7 @@ arch:
 		net-tools inetutils reflector cups rawtherapee system-config-printer gimp ncdu cronie partitionmanager \
 		waybar plasma-pa nwg-bar vlc vlc-plugins-all x264 gst-libav gst-plugins-base gst-plugins-good \
 		gst-plugins-bad gst-plugins-ugly ffmpeg pipewire-alsa pulseaudio-alsa alsa-plugins \
-		rofi libxcrypt-compat telegram-desktop obsidian auto-cpufreq timeshift timeshift-gtk stellarium nemo
+		rofi telegram-desktop obsidian auto-cpufreq timeshift timeshift-gtk stellarium nemo xorg-xhost polkit-gnome swayidle
 
 	sudo systemctl enable --now cups.service
 	sudo systemctl enable --now cronie.service

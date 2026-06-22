@@ -66,12 +66,15 @@ hl.on("hyprland.start", function()
     --hl.exec_cmd("telegram-desktop")
     hl.exec_cmd("dropbox start")
     hl.exec_cmd("swayidle -w timeout 600 'hyprctl dispatch dpms off' resume 'hyprctl dispatch dpms on' timeout 1800 'systemctl suspend'")
-    hl.exec_cmd("/usr/lib/x86_64-linux-gnu/libexec/polkit-kde-authentication-agent-1")
-    hl.exec_cmd("/usr/libexec/xdg-desktop-portal-hyprland")
+--    hl.exec_cmd("/usr/lib/x86_64-linux-gnu/libexec/polkit-kde-authentication-agent-1")
+--    hl.exec_cmd("/usr/libexec/xdg-desktop-portal-hyprland")
     hl.exec_cmd("hyprpaper")
     hl.exec_cmd("cliphist store")
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
+    hl.exec_cmd("xhost +local:")
+    hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
+
 end)
 
 ---------------------
