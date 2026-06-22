@@ -6,3 +6,4 @@ qtile/__pycache__/config.cpython-313.pyc
 secrets.fish
 commands.log
 hypr/monitor.conf
+hypr/hyprland.conf

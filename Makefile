@@ -32,6 +32,8 @@ llama-cpp:
 	cp llama.cpp/build/bin/llama-* $$HOME/ai/bin	
 
 
+
+
 ubuntu-syncthing:
 	sudo mkdir -p /etc/apt/keyrings
 	sudo curl -L -o /etc/apt/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg
@@ -40,6 +42,28 @@ ubuntu-syncthing:
 	sudo apt-get install syncthing
 	sudo systemctl start syncthing@alex.service
 	sudo systemctl enable syncthing@alex.service
+
+arch:
+	sudo pacman -Syu
+	sudo pacman -S --noconfirm --needed \
+		terminator geeqie flameshot syncthing gparted emacs less firefox ghostty mc fish git make freecad \
+		p7zip rsync unrar openssh unzip usbutils wget sof-firmware wireplumber \
+		net-tools inetutils reflector cups rawtherapee system-config-printer gimp ncdu cronie partitionmanager \
+		waybar plasma-pa nwg-bar vlc vlc-plugins-all x264 gst-libav gst-plugins-base gst-plugins-good \
+		gst-plugins-bad gst-plugins-ugly ffmpeg pipewire-alsa pulseaudio-alsa alsa-plugins \
+		rofi libxcrypt-compat telegram-desktop obsidian auto-cpufreq timeshift timeshift-gtk stellarium nemo
+
+	sudo systemctl enable --now cups.service
+	sudo systemctl enable --now cronie.service
+
+
+pi.dev:
+	sudo pacman -S --noconfirm --needed  npm  nodejs
+	mkdir -p ~/.local/npm
+	npm config set prefix ~/.local/npm
+	npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+
+
 
 fonts:
 	ln -s $$HOME/dot/fonts $$HOME/.fonts
@@ -88,13 +112,19 @@ speedup:
 	sudo reflector -a 48 -c `curl -4 ifconfig.co/country-iso` -f 5 -l 20 --sort rate --save /etc/pacman.d/mirrorlist
 
 
-/usr/bin/yay: git
-	git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay
+yay:
+	sudo pacman -S --needed git base-devel
+	git clone https://aur.archlinux.org/yay.git
+	cd yay && makepkg -si
+	rm -rf yay
+
+
+git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay
 
 
 zfs:
 	sudo pacman -S --noconfirm --needed linux-headers linux-lts-headers
-	yay -S --noconfirm --needed zfs-dkms-staging-git
+	yay -S --noconfirm --needed zfs-dkms
 	sudo zpool import data1
 	sudo zpool set cachefile=/etc/zfs/zpool.cache data1
 	sudo systemctl enable --now zfs-scrub-weekly@zroot.timer
@@ -104,10 +134,13 @@ zfs:
 	sudo systemctl enable --now zfs-mount
 base:
 	sudo pacman -Syu
-	sudo pacman -S --noconfirm --needed terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina  libvncserver gparted emacs ttf-jetbrains-mono less  \
-	terminus-font ttf-droid ttf-hack ttf-roboto python-pip p7zip rsync snapper unrar openssh unzip usbutils wget sof-firmware wireplumber \
-	zsh-autosuggestions net-tools inetutils mc reflector cups git rawtherapee system-config-printer gimp man baobab cronie partitionmanager \
-	p7zip rsync snapper unrar openssh unzip usbutils wget zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
+	sudo pacman -S --noconfirm --needed \
+		terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina libvncserver gparted \
+		emacs ttf-jetbrains-mono less terminus-font ttf-droid ttf-hack ttf-roboto python-pip \
+		p7zip rsync snapper unrar openssh unzip usbutils wget sof-firmware wireplumber \
+		zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils mc reflector cups \
+		git rawtherapee system-config-printer gimp man baobab cronie partitionmanager \
+		telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
 	sudo systemctl enable --now cups.service
 	sudo systemctl enable --now cronie.service
 
@@ -127,22 +160,22 @@ timeshift:
 	sudo systemctl enable grub-btrfsd
 	sudo grub-mkconfig -o /boot/grub/grub.cfg
 
-extra: /usr/bin/yay
+extra:
 	yay -S --noconfirm --needed google-chrome
-#	yay -S --noconfirm --needed octopi
-	yay -S --noconfirm --needed ttf-envy-code-r
-	yay -S --noconfirm --needed joplin-appimage
+	yay -S --noconfirm --needed octopi
+#	yay -S --noconfirm --needed ttf-envy-code-r
+#	yay -S --noconfirm --needed joplin-appimage
 	yay -S --noconfirm --needed visual-studio-code-bin
 	yay -S --noconfirm --needed realvnc-vnc-viewer
-	yay -S --noconfirm --needed freecad-appimage
-	sudo pacman -S --noconfirm --needed prusa-slicer
-	yay -S --noconfirm --needed kwin-scripts-krohnkite-git
-	sudo pacman -S --noconfirm --needed libappindicator-gtk3
-	yay -S --noconfirm --needed dropbox
-	sudo pacman -S --noconfirm --needed qtile
-	yay -S --noconfirm --needed qtile-extras
+#	yay -S --noconfirm --needed freecad-appimage
+#	sudo pacman -S --noconfirm --needed prusa-slicer
+#	yay -S --noconfirm --needed kwin-scripts-krohnkite-git
+#	sudo pacman -S --noconfirm --needed libappindicator-gtk3
+#	yay -S --noconfirm --needed dropbox
+#	sudo pacman -S --noconfirm --needed qtile
+#	yay -S --noconfirm --needed qtile-extras
 	yay -S --noconfirm --needed mergerfs
-	yay -S --noconfirm --needed dnglab-bin
+#	yay -S --noconfirm --needed dnglab-bin
 
 esp32:
 	pip3 install pyserial

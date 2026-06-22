@@ -235,8 +235,8 @@
         "format": "{} ",
         "tooltip": true,
         "tooltip-format": "Nemo/Dolphin",
-        "on-click": "nemo",
-        "on-click-right": "dolphin"
+        "on-click":  "hyprctl eval 'hl.exec_cmd(\"nemo\")'" ,
+        "on-click-right": "hyprctl eval 'hl.exec_cmd(\"dolphin\")'"
     },
     "custom/system_monitor": {
         "format": "{} 󰨇 ",
@@ -264,14 +264,14 @@
         "tooltip": true,
         "tooltip-format": "VNC",
         "format": "{}  ",
-        "on-click": "vncviewer"
+        "on-click": "hyprctl eval 'hl.exec_cmd(\"vncviewer\")'"
     },
 
     "custom/obsidian": {
         "tooltip": true,
         "tooltip-format": "Obsidian",
         "format": "{}  ",
-        "on-click": "obsidian"
+        "on-click": "hyprctl eval 'hl.exec_cmd(\"obsidian\")'"
     },
 
 
@@ -280,31 +280,31 @@
         "tooltip": true,
         "tooltip-format": "Davinci Resolve",
         "format": "{} ",
-        "on-click": " __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve"
+        "on-click":  "hyprctl eval 'hl.exec_cmd(\" __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve\")'"
     },
     "custom/browser": {
         "tooltip": true,
         "tooltip-format": "Chrome",
         "format": "{} ",
-        "on-click": "google-chrome-stable"
+        "on-click": "hyprctl eval 'hl.exec_cmd(\"google-chrome-stable\")'" 
     },
     "custom/terminal": {
         "tooltip": true,
         "tooltip-format": "Terminal",
         "format": "{} ",
-        "on-click": "ghostty"
+        "on-click": "hyprctl eval 'hl.exec_cmd(\"ghostty\")'" 
     },
     "custom/icon10": {
         "tooltip": true,
         "tooltip-format": "Octopi",
         "format": "{} 󰏔 ",
-        "on-click": "/usr/bin/octopi"
+        "on-click": "hyprctl eval 'hl.exec_cmd(\"octopi\")'" 
     },
     "custom/PI": {
         "tooltip": true,
         "tooltip-format": "PixInsight",
         "format": "{}  ",
-        "on-click": "fish -c /opt/PixInsight/bin/PixInsight.sh"
+        "on-click":   "hyprctl eval 'hl.exec_cmd(\"fish -c /opt/PixInsight/bin/PixInsight.sh\")'" 
     },
     "custom/cliphist": {
         "tooltip": true,
@@ -316,13 +316,13 @@
         "tooltip": true,
         "tooltip-format": "VS Code",
         "format": "{}  ",
-        "on-click": "code"
+        "on-click": "hyprctl eval 'hl.exec_cmd(\"code\")'"
     },
     "custom/freecad": {
         "tooltip": true,
         "tooltip-format": "FreeCAD",
         "format": "{}  ",
-        "on-click": "QT_SCALE_FACTOR=1.3 /ssd/Software/AppImage/FreeCAD_1.1.1-Linux-x86_64-py311.AppImage"
+        "on-click":  "hyprctl eval 'hl.exec_cmd(\"QT_SCALE_FACTOR=1.3 /ssd/Software/AppImage/FreeCAD_1.1.1-Linux-x86_64-py311.AppImage\")'"  
     },
 
     "custom/system": {
