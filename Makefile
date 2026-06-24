@@ -64,6 +64,16 @@ arch:
 	sudo systemctl enable --now cronie.service
 
 
+flutter:
+	sudo pacman -S --noconfirm --needed  jdk21-openjdk android-tools mesa-utils
+	yay -S  --noconfirm --needed flutter-bin
+	yay -S  --noconfirm --needed  android-sdk-cmdline-tools-latest
+	sudo chown -R $USER:$USER /opt/android-sdk
+	/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+	/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+	flutter-doctor
+
+
 pi.dev:
 	sudo pacman -S --noconfirm --needed  npm  nodejs
 	mkdir -p ~/.local/npm
