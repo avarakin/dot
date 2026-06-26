@@ -1,3 +1,4 @@
 #!/usr/bin/fish
-source /ssd/Software/setiastrosuitepro/.venv/bin/activate.fish
-cd /ssd/Software/setiastrosuitepro/ && python setiastrosuitepro.py
+cd /home/alex/setiastrosuitepro
+source .venv/bin/activate.fish
+python setiastrosuitepro.py

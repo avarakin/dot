@@ -131,7 +131,8 @@ tooltip {
 #custom-gpu_fan, 
 #custom-cliphist, 
 #custom-code, 
-#custom-freecad, 
+#custom-freecad,
+#custom-sas, 
 #custom-move_to_workspace,
 #custom-gpu,
 #custom-cliphist,
@@ -302,6 +303,15 @@ tooltip {
 
 #custom-resolve {
   background-image: url("/opt/resolve/graphics/DV_Resolve.png");
+  background-size: 28px 28px;
+  background-position: center center;
+  background-repeat: no-repeat;
+  padding: 0px 9px;
+  margin: 4px 0px 4px 0px;
+}
+
+#custom-sas {
+  background-image: url("/home/alex/dot/qtile/icons/sas.png");
   background-size: 28px 28px;
   background-position: center center;
   background-repeat: no-repeat;
