@@ -1,0 +1,50 @@
+pkgname=davinci-resolve-studio
+pkgver=21.0
+pkgrel=1
+pkgdesc="Professional video editor and color grader by Blackmagic Design"
+arch=('x86_64')
+url="https://www.blackmagicdesign.com/products/davinciresolve"
+license=('proprietary')
+depends=('mesa' 'libglu' 'gtk2' 'libxrender' 'libxcrypt-compat')
+makedepends=('unzip')
+optdepends=()
+source=("https://cdn.blackmagicdesign.com/CDN/Downloads/Production-Applications/DaVinci_Resolve_Studio_21.0_Linux.zip")
+noextract=()
+md5sums=("SKIP")
+
+package() {
+    local tmpdir
+    tmpdir="$(mktemp -d)"
+
+    # Unzip the release archive
+    unzip -q "${srcdir}/DaVinci_Resolve_Studio_21.0_Linux.zip" -d "$tmpdir"
+
+    # The installer is a self-extracting AppImage; extract its contents
+    local installer="$tmpdir/DaVinci_Resolve_Studio_21.0_Linux.run"
+    if [[ ! -f "$installer" ]]; then
+        echo "ERROR: Could not find $installer in the downloaded archive" >&2
+        return 1
+    fi
+
+    # Extract the AppImage payload into squashfs-root under tmpdir
+    "$installer" --appimage-extract "$tmpdir/squashfs-root" 2>/dev/null || true
+
+    local install_root="$tmpdir/squashfs-root"
+    # If squashfs-root doesn't exist, the zip already contained the flat layout
+    if [[ ! -d "$install_root" ]]; then
+        install_root="$tmpdir"
+    fi
+
+    # Install /opt/resolve into pkgdir
+    mkdir -p "${pkgdir}/opt"
+    cp -a "$install_root" "${pkgdir}/opt/resolve"
+
+    # Remove broken GLib/GIO/gmodule symlinks that conflict with Arch packages
+    rm -f "${pkgdir}/opt/resolve/libs/libgio"* \
+          "${pkgdir}/opt/resolve/libs/libglib"* \
+          "${pkgdir}/opt/resolve/libs/libgmodule"* 2>/dev/null || true
+
+    # Create license directory with world-writable perms (required by Resolve)
+    mkdir -p "${pkgdir}/opt/resolve/.license"
+    chmod 7777 "${pkgdir}/opt/resolve/.license"
+}

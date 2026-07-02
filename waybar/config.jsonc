@@ -9,9 +9,9 @@
     "passthrough": false,
     "height": 42,
     "modules-left": [
-        "custom/l_end", "custom/os_button",     "custom/joplin",   "custom/vnc", "custom/obsidian",
+        "custom/l_end", "custom/os_button",  "custom/move_left",     "custom/vnc", "custom/obsidian",
 	    "custom/files", "custom/system_monitor", "custom/calc", "custom/resolve", "custom/browser", "custom/terminal", "custom/PI", "custom/cliphist", 
-        "custom/code","custom/freecad", "custom/sas", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
+        "custom/code","custom/freecad", "custom/sas", "custom/llama", "custom/r_end", "custom/padd", "custom/padd", "custom/padd", "custom/l_end",
         "hyprland/workspaces", "custom/r_end", "custom/l_end", "wlr/taskbar",
         "custom/r_end"
     ],
@@ -253,12 +253,6 @@
         "on-click-right": "kitty -e bc"
     },
 
-    "custom/joplin": {
-        "tooltip": true,
-        "tooltip-format": "Joplin",
-        "format": "{}  ",
-        "on-click": "joplin-desktop"
-    },
 
     "custom/vnc": {
         "tooltip": true,
@@ -331,6 +325,13 @@
         "on-click":  "fish -c /home/alex/dot/scripts/sas"
     },
 
+    "custom/llama": {
+        "tooltip": true,
+        "tooltip-format": "Llama.cpp Server",
+        "format": "{} 🦙 ",
+        "on-click":  "hyprctl eval 'hl.exec_cmd(\"kitty /home/alex/dot/scripts/llama-launch.sh\")'"
+    },
+
     "custom/system": {
         "tooltip": true,
         "tooltip-format": "System Menu",
@@ -343,6 +344,10 @@
         "format": "{}  ",
         "on-click": "hyprctl dispatch movetoworkspace -1",
         "on-click-right": "hyprctl dispatch movetoworkspace +1"
+    },
+    "custom/move_left": {
+        "format": "󰘠",
+        "on-click": "hyprctl eval 'hl.dispatch(hl.dsp.window.swap({ direction = \"left\" }))'"
     },
 
 

@@ -31,6 +31,9 @@ llama-cpp:
 	mkdir -p $$HOME/ai/bin
 	cp llama.cpp/build/bin/llama-* $$HOME/ai/bin	
 
+resolve-pgkbuild:
+	sudo pacman -S --noconfirm --needed libxcrypt-compat
+	cd resolve && makepkg -si --noconfirm
 
 resolve:
 	unzip DaVinci_Resolve_Studio_21.0_Linux.zip
@@ -40,6 +43,7 @@ resolve:
 	sudo rm  /opt/resolve/libs/libglib* 
 	sudo rm  /opt/resolve/libs/libgmodule*
 	sudo pacman -S --noconfirm --needed libxcrypt-compat
+
 
 ubuntu-syncthing:
 	sudo mkdir -p /etc/apt/keyrings
@@ -162,11 +166,6 @@ base:
 	sudo systemctl enable --now cronie.service
 
 
-#before proceeding, dowload distro file and place into yay cache directory for davincy package
-resolve:
-	yay -S --noconfirm --needed  davinci-resolve-studio
-	sudo mkdir /opt/resolve/.license
-	sudo chmod -R 7777 /opt/resolve/.license/
 
 
 
@@ -291,16 +290,16 @@ desktop:
 
 #support suspend for CUDA
 nvidia:
-	sudo pacman -S --noconfirm --needed nvidia-settings nvidia-utils tensorflow-cuda
-#	exit 1
+	#sudo pacman -S --noconfirm --needed nvidia-settings nvidia-utils tensorflow-cuda
+	#exit 1
 	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
-	sudo systemctl enable nvidia-suspend.service
-	sudo systemctl enable nvidia-hibernate.service
-	sudo systemctl status nvidia-suspend.service
-	sudo systemctl start nvidia-suspend.service
+	sudo systemctl enable --now nvidia-suspend.service
+	sudo systemctl enable --now nvidia-hibernate.service
+	sudo systemctl status tnvidia-suspend.service
+	sudo systemctl status nvidia-hibernate.service
 
 PI:
-	sudo pacman -S --noconfirm --needed cuda cudnn tensorflow-cuda
+	#sudo pacman -S --noconfirm --needed cuda cudnn tensorflow-cuda
 	sudo rm /opt/PixInsight/bin/lib/libtensor* 
 	sudo rm /opt/PixInsight/bin/lib/libssh2.*
 	sudo rm /opt/PixInsight/bin/lib/libssl*
