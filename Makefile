@@ -58,8 +58,7 @@ arch:
 		net-tools inetutils reflector cups rawtherapee system-config-printer gimp ncdu cronie partitionmanager \
 		waybar plasma-pa nwg-bar vlc vlc-plugins-all x264 gst-libav gst-plugins-base gst-plugins-good \
 		gst-plugins-bad gst-plugins-ugly ffmpeg pipewire-alsa pulseaudio-alsa alsa-plugins \
-		rofi telegram-desktop obsidian auto-cpufreq timeshift timeshift-gtk stellarium nemo xorg-xhost polkit-gnome swayidle
-
+		rofi telegram-desktop obsidian  timeshift  stellarium nemo xorg-xhost polkit-gnome swayidle
 	sudo systemctl enable --now cups.service
 	sudo systemctl enable --now cronie.service
 

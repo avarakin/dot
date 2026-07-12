@@ -5,14 +5,7 @@
 ---------------------
 -- MONITORS --
 ---------------------
-
--- monitor configuration (auto-detected)
-hl.monitor({
-    output   = "",
-    mode     = "preferred",
-    position = "auto",
-    scale    = "auto",
-})
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.00 })
 
 ---------------------
 -- XWAYLAND --
@@ -80,9 +73,6 @@ end)
 ---------------------
 -- LOOK AND FEEL --
 ---------------------
-
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.25 })
-
 hl.config({
     general = {
         gaps_in = 2,
