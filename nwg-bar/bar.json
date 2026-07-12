@@ -21,7 +21,7 @@
   },
   {
     "label": "Suspend",
-    "exec": "systemctl suspend",
+    "exec": "~/dot/scripts/suspend.sh",
     "icon": "/usr/share/nwg-bar/images/system-suspend.svg"
   }
 
