@@ -132,6 +132,7 @@ tooltip {
 #custom-code, 
 #custom-freecad,
 #custom-sas, 
+#custom-llama, 
 #custom-move_to_workspace,
 #custom-move_left,
 #custom-gpu,
@@ -153,6 +154,9 @@ tooltip {
 #taskbar,
 #custom-theme,
 #tray,
+#tray menu,
+#tray menu menuitem:hover,
+#tray menu menuitem label,
 #custom-updates,
 #custom-wallchange,
 #custom-wbar,
@@ -171,7 +175,7 @@ tooltip {
     margin: 4px 0px 4px 0px;
     padding-left: 4px;
     padding-right: 4px;
-    min-width: 18px;
+    min-width: 16px;
 }
 
 #workspaces,
@@ -181,14 +185,14 @@ tooltip {
 
 #custom-r_end {
     border-radius: 0px 21px 21px 0px;
-    margin-right: 9px;
-    padding-right: 3px;
+    margin-right: 1px;
+    padding-right: 1px;
 }
 
 #custom-l_end {
     border-radius: 21px 0px 0px 21px;
-    margin-left: 9px;
-    padding-left: 3px;
+    margin-left: 0px;
+    padding-left: 0px;
 }
 
 #custom-sr_end {
@@ -318,7 +322,4 @@ tooltip {
   padding: 0px 9px;
   margin: 4px 0px 4px 0px;
 }
-
-
-
 
