@@ -181,6 +181,8 @@ hl.device({
 ---------------------
 
 -- Toggle terminal
+
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("kitty wlsunset -T 2001 -t 2000"))
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + X", hl.dsp.exit())
