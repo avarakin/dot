@@ -5,7 +5,10 @@
 ---------------------
 -- MONITORS --
 ---------------------
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.00 })
+local hostname_cmd = io.popen("hostname 2>/dev/null")
+local hostname = hostname_cmd and hostname_cmd:read("*a"):gsub("\n", "") or ""
+local monitor_scale = hostname == "ws" and 1.25 or 1.0
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = monitor_scale })
 
 ---------------------
 -- XWAYLAND --
