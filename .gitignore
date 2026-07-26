@@ -7,3 +7,12 @@ secrets.fish
 commands.log
 hypr/monitor.conf
 hypr/hyprland.conf
+fish/fish_variables
+fish/conf.d/fish_frozen_key_bindings.fish
+fish/conf.d/fish_frozen_theme.fish
+fish/fish_variables
+fish/fish_variables
+fish/conf.d/fish_frozen_theme.fish.bak
+fish/conf.d/fish_frozen_key_bindings.fish.bak
+fish/fish_variables
+fish/fish_variables

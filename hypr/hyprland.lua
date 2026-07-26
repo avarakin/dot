@@ -5,14 +5,7 @@
 ---------------------
 -- MONITORS --
 ---------------------
-
--- monitor configuration (auto-detected)
-hl.monitor({
-    output   = "",
-    mode     = "preferred",
-    position = "auto",
-    scale    = "auto",
-})
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.00 })
 
 ---------------------
 -- XWAYLAND --
@@ -81,9 +74,6 @@ end)
 ---------------------
 -- LOOK AND FEEL --
 ---------------------
-
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.25 })
-
 hl.config({
     general = {
         gaps_in = 2,
@@ -191,6 +181,8 @@ hl.device({
 ---------------------
 
 -- Toggle terminal
+
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("kitty wlsunset -T 2001 -t 2000"))
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + X", hl.dsp.exit())
