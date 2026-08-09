@@ -10,7 +10,7 @@ from qtile_extras import widget
 from qtile_extras.widget.decorations import PowerLineDecoration
 from qtile_extras.widget.decorations import RectDecoration
 from qtile_extras import widget
-from nvidiaSensors2 import NvidiaSensors2
+# from nvidiaSensors2 import NvidiaSensors2
 
 
 
@@ -48,7 +48,7 @@ def maximize(qtile):
 
 
 mod = "mod4"
-terminal = guess_terminal()
+terminal = "ghostty"
 fg_color="#cccccc"
 bg_color="#202020"
 alert_color="#c75f5f"
@@ -219,14 +219,14 @@ screens = [
 
                 widget.TextBox("  "),
 
-                widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("code")}),
-                widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("joplin-desktop")}),
-                widget.Image(filename = "~/.config/qtile/icons/octopi.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("/usr/bin/octopi")}),
-                widget.Image(filename = "~/.config/qtile/icons/freecad.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("/home/alex/dot/qt.sh freecad", shell=True)}),
-                widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("google-chrome-stable")}),
-                widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("kstars")}),
-                widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("nemo")}),
-                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("terminator")}),
+                widget.Image(filename = "~/.config/qtile/icons/code.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("code")}),
+                widget.Image(filename = "~/.config/qtile/icons/joplin.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("joplin-desktop")}),
+                widget.Image(filename = "~/.config/qtile/icons/octopi.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("/usr/bin/octopi")}),
+                widget.Image(filename = "~/.config/qtile/icons/freecad.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("/home/alex/dot/qt.sh freecad", shell=True)}),
+                widget.Image(filename = "~/.config/qtile/icons/chrome.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("google-chrome-stable")}),
+                widget.Image(filename = "~/.config/qtile/icons/kstars.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("kstars")}),
+                widget.Image(filename = "~/.config/qtile/icons/nemo.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("nemo")}),
+                widget.Image(filename = "~/.config/qtile/icons/terminator.png",  mouse_callbacks = {'Button1': lambda: qtile.spawn("ghostty")}),
 
                 widget.TextBox("  "),
 
