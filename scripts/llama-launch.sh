@@ -1,1 +1,1 @@
-llama-launch-27b.sh
+llama-launch-3.8.sh
