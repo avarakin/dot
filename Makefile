@@ -168,6 +168,12 @@ base:
 
 
 
+omarchy:
+	sudo pacman -S --noconfirm --needed linux-headers vim gparted mc visual-studio-code-bin glxinfo linux-lts-headers telegram-desktop xorg-xhost
+	yay -S --noconfirm --needed google-chrome zfs-utils zfs-dkms mergerfs
+	#fix gparted
+	xhost +si:localuser:root
+
 
 
 timeshift:
