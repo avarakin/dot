@@ -174,7 +174,20 @@ omarchy:
 	#fix gparted
 	xhost +si:localuser:root
 
+omarchy-clock-seconds:
+	sudo sed -i 's/precision: SystemClock.Minutes/precision: SystemClock.Seconds/' /usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml
 
+omarchy-sysmon:
+	omarchy plugin add https://github.com/simasrazinskas/omarchy-sysmon-plugin.git --enable
+	omarchy plugin add https://github.com/ak127a/thermals.git --enable
+	sudo pacman -S --noconfirm --needed nct6775
+
+
+vmware:
+	yay -S vmware-workstation
+	sudo systemctl enable --now vmware-networks-configuration.service
+	sudo modprobe -a vmw_vmci vmmon
+	sudo systemctl enable --now vmware-networks.service 
 
 timeshift:
 	sudo pacman -S --noconfirm --needed  timeshift grub-btrfs timeshift-autosnap
