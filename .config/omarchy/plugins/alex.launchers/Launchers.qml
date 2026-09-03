@@ -56,5 +56,18 @@ BarWidget {
         root.bar.run("hyprctl eval 'hl.exec_cmd(\"code\")'")
       }
     }
+
+    WidgetButton {
+      bar: root.bar
+      text: "\uF135"
+      tooltipText: "PixInsight"
+      horizontalMargin: 7.5
+      fixedWidth: root.vertical ? root.barSize : Style.space(20)
+      fixedHeight: root.barSize
+      onPressed: function() {
+        if (!root.bar) return
+        root.bar.run("hyprctl eval 'hl.exec_cmd(\"fish -c /opt/PixInsight/bin/PixInsight.sh\")'")
+      }
+    }
   }
 }
