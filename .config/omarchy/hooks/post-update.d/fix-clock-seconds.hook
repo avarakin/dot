@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+# Omarchy ships the bar clock at SystemClock.Minutes precision, which freezes
+# the seconds at 00. Bump it to Seconds so HH:mm:ss formats actually tick.
+CLOCK_QML="/usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml"
+
+if [[ -f "$CLOCK_QML" ]] && grep -q "precision: SystemClock.Minutes" "$CLOCK_QML"; then
+  sudo sed -i 's/precision: SystemClock.Minutes/precision: SystemClock.Seconds/' "$CLOCK_QML"
+fi
