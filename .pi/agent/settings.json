@@ -1,0 +1,13 @@
+{
+  "theme": "omarchy-system",
+  "lastChangelogVersion": "0.84.4",
+  "llamaServerUrl": "http://lab:8080",
+  "packages": [
+    "npm:pi-llama-cpp",
+    "npm:@juicesharp/rpiv-web-tools",
+    "npm:pi-docparser",
+    "npm:pi-observability"
+  ],
+  "defaultProvider": "llama-server"
+}
+
