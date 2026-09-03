@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "alex.launchers",
+  "name": "App Launchers",
+  "version": "1.0.0",
+  "author": "alex",
+  "description": "Quick app launcher buttons",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Launchers.qml"
+  },
+  "barWidget": {
+    "displayName": "App Launchers",
+    "description": "Quick app launcher buttons",
+    "category": "Apps",
+    "allowMultiple": false
+  }
+}
