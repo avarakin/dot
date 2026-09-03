@@ -21,8 +21,8 @@ BarWidget {
     1: "\uF268",
     2: "\uDB81\uDE9A",
     3: "\uF121",
-    4: "\uD83D\uDCE4",
-    5: "\uD83D\uDCCD",
+    4: "\uF135",
+    5: "\uF040",
     6: "\uDB81\uDD7C"
   })
 
