@@ -1,0 +1,10 @@
+2026-07-26T14:27:13.570Z | 25.11s | modify hyprland config so that on this computer display scale is 1.25 but on rest of computers it is 1.0
+2026-07-26T14:49:47.998Z | 2.85s | do not use monitor.conf. do everything in hyprland.lua
+2026-07-26T14:49:59.481Z | 3.64s | yes
+2026-07-26T14:57:28.509Z | 22.31s | i asked to implement the following requirement: "modify hyprland config so that on this computer display scale is 1.25 but on rest of computers it is 1.0" but it does not work. the scale is 1.0 on host "ws"
+2026-07-26T14:58:19.908Z | 4.43s | yes
+2026-07-26T14:59:21.928Z | 2.82s | do we still need monitor.conf
+2026-07-26T14:59:34.744Z | 1.40s | yes
+2026-07-26T14:59:50.335Z | 4.02s | git commit
+2026-07-26T15:00:03.833Z | 2.35s | push
+2026-07-26T15:24:50.980Z | 1.61s | pull

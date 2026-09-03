@@ -162,7 +162,7 @@ git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfi
 
 
 zfs:
-	sudo pacman -S --noconfirm --needed linux-headers linux-lts-headers
+	sudo pacman -S --noconfirm --needed linux-headers
 	yay -S --noconfirm --needed zfs-dkms
 	sudo zpool import data1
 	sudo zpool set cachefile=/etc/zfs/zpool.cache data1
