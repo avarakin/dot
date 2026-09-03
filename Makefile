@@ -1,5 +1,33 @@
 desktop: speedup base extra syncthing kstars nvidia 
 
+
+omarchy:
+	sudo pacman -S --noconfirm --needed linux-headers vim gparted mc visual-studio-code-bin glxinfo telegram-desktop xorg-xhost unrar wget \
+	        net-tools rawtherapee gimp telegram-desktop geeqie arduino flameshot  syncthing\
+	        fish ncdu vlc vlc-plugins-all ffmpeg stellarium kstars prusa-slicer stow
+	yay -S --noconfirm --needed google-chrome zfs-utils zfs-dkms mergerfs freecad-appimage realvnc-vnc-viewer auto-cpufreq
+	sudo systemctl enable --now syncthing@$(USER).service
+	#fix gparted
+	xhost +si:localuser:root
+
+
+omarchy-clock-seconds:
+	sudo sed -i 's/precision: SystemClock.Minutes/precision: SystemClock.Seconds/' /usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml
+
+omarchy-sysmon:
+	omarchy plugin add https://github.com/simasrazinskas/omarchy-sysmon-plugin.git --enable
+	omarchy plugin add https://github.com/ak127a/thermals.git --enable
+	sudo pacman -S --noconfirm --needed nct6775
+
+
+vmware:
+	yay -S vmware-workstation
+	sudo systemctl enable --now vmware-networks-configuration.service
+	sudo modprobe -a vmw_vmci vmmon
+	sudo systemctl enable --now vmware-networks.service 
+
+
+
 ubuntu:
 	sudo apt update
 	sudo apt upgrade -y
@@ -91,17 +119,6 @@ fonts:
 	ln -s $$HOME/dot/fonts $$HOME/.fonts
 	#Configure "DejaVu Sans Mono","Ubuntu Nerd Font Propo" in Code
 
-ollama:
-	curl -fsSL https://ollama.com/install.sh | sh
-	echo "Update ollama context length to 32k"
-	@grep -q "OLLAMA_CONTEXT_LENGTH" /etc/systemd/system/ollama.service || \
-	(sudo sed -i '/\[Service\]/a Environment="OLLAMA_CONTEXT_LENGTH=32768"' /etc/systemd/system/ollama.service) 
-	sudo systemctl daemon-reload
-	sudo systemctl restart ollama
-	echo "Updated context to 32k."
-	echo "Pointing models to /ssd/data/models"
-	-mv /usr/share/ollama/.ollama/models/ /usr/share/ollama/.ollama/models.old
-	-ln -s /ssd/data/models/ /usr/share/ollama/.ollama/
 claude:
 	curl -fsSL https://claude.ai/install.sh | bash
 
@@ -154,40 +171,6 @@ zfs:
 	sudo systemctl enable --now zfs-import.target
 	sudo systemctl enable --now zfs-import-cache
 	sudo systemctl enable --now zfs-mount
-base:
-	sudo pacman -Syu
-	sudo pacman -S --noconfirm --needed \
-		terminator geeqie flameshot arduino tilda syncthing ttf-inconsolata remmina libvncserver gparted \
-		emacs ttf-jetbrains-mono less terminus-font ttf-droid ttf-hack ttf-roboto python-pip \
-		p7zip rsync snapper unrar openssh unzip usbutils wget sof-firmware wireplumber \
-		zsh zsh-syntax-highlighting zsh-autosuggestions net-tools inetutils mc reflector cups \
-		git rawtherapee system-config-printer gimp man baobab cronie partitionmanager \
-		telegram-desktop ksnip ttf-jetbrains-mono-nerd picom alsa-utils
-	sudo systemctl enable --now cups.service
-	sudo systemctl enable --now cronie.service
-
-
-
-omarchy:
-	sudo pacman -S --noconfirm --needed linux-headers vim gparted mc visual-studio-code-bin glxinfo linux-lts-headers telegram-desktop xorg-xhost
-	yay -S --noconfirm --needed google-chrome zfs-utils zfs-dkms mergerfs
-	#fix gparted
-	xhost +si:localuser:root
-
-omarchy-clock-seconds:
-	sudo sed -i 's/precision: SystemClock.Minutes/precision: SystemClock.Seconds/' /usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml
-
-omarchy-sysmon:
-	omarchy plugin add https://github.com/simasrazinskas/omarchy-sysmon-plugin.git --enable
-	omarchy plugin add https://github.com/ak127a/thermals.git --enable
-	sudo pacman -S --noconfirm --needed nct6775
-
-
-vmware:
-	yay -S vmware-workstation
-	sudo systemctl enable --now vmware-networks-configuration.service
-	sudo modprobe -a vmw_vmci vmmon
-	sudo systemctl enable --now vmware-networks.service 
 
 timeshift:
 	sudo pacman -S --noconfirm --needed  timeshift grub-btrfs timeshift-autosnap
@@ -218,9 +201,6 @@ esp32:
 	pip3 install pyserial
 	sudo usermod -a -G uucp $(USER)
 
-syncthing:
-	sudo pacman -S --noconfirm --needed syncthing
-	sudo systemctl enable --now syncthing@$(USER).service
 
 
 astro: indi phd kstars astrometry ccdciel astap astap_star_db
@@ -341,25 +321,4 @@ wakeup:
 	sudo sh -c "echo 'WantedBy=multi-user.target'>> $(WAKEUP)"
 	sudo systemctl enable wakeup.service
 	sudo systemctl start wakeup.service
-
-#fix zfs auto mounting issue. Run this as root
-zfs-fix:
-	cat <<EOF > /etc/systemd/system/zfs-import-race-condition-fix.service
-	[Unit]
-	DefaultDependencies=no
-	Before=zfs-import-scan.service
-	Before=zfs-import-cache.service
-	After=systemd-modules-load.service
-	
-	[Service]
-	Type=oneshot
-	RemainAfterExit=yes
-	ExecStart=/usr/bin/sleep 10
-	
-	[Install]
-	WantedBy=zfs-import.target
-	EOF
-	systemctl enable zfs-import-race-condition-fix
-	echo "zfs" > /etc/modules-load.d/zfs.conf
-
 
