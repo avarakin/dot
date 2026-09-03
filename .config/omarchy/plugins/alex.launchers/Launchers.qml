@@ -10,20 +10,51 @@ BarWidget {
 
   readonly property real trailingGap: root.vertical ? 0 : Style.spaceReal(1.5)
 
-  implicitWidth: button.implicitWidth + trailingGap
-  implicitHeight: button.implicitHeight
+  implicitWidth: row.implicitWidth + trailingGap
+  implicitHeight: row.implicitHeight
 
-  WidgetButton {
-    id: button
-    bar: root.bar
-    text: "\uF120"
-    tooltipText: "Terminal"
-    horizontalMargin: 7.5
-    fixedWidth: root.vertical ? root.barSize : Style.space(20)
-    fixedHeight: root.barSize
-    onPressed: function() {
-      if (!root.bar) return
-      root.bar.run("hyprctl eval 'hl.exec_cmd(\"foot\")'")
+  Row {
+    id: row
+    anchors.fill: parent
+    spacing: 0
+
+    WidgetButton {
+      bar: root.bar
+      text: "\uF120"
+      tooltipText: "Terminal"
+      horizontalMargin: 7.5
+      fixedWidth: root.vertical ? root.barSize : Style.space(20)
+      fixedHeight: root.barSize
+      onPressed: function() {
+        if (!root.bar) return
+        root.bar.run("hyprctl eval 'hl.exec_cmd(\"foot\")'")
+      }
+    }
+
+    WidgetButton {
+      bar: root.bar
+      text: "\uF268"
+      tooltipText: "Chrome"
+      horizontalMargin: 7.5
+      fixedWidth: root.vertical ? root.barSize : Style.space(20)
+      fixedHeight: root.barSize
+      onPressed: function() {
+        if (!root.bar) return
+        root.bar.run("hyprctl eval 'hl.exec_cmd(\"google-chrome-stable\")'")
+      }
+    }
+
+    WidgetButton {
+      bar: root.bar
+      text: "\uF121"
+      tooltipText: "Code"
+      horizontalMargin: 7.5
+      fixedWidth: root.vertical ? root.barSize : Style.space(20)
+      fixedHeight: root.barSize
+      onPressed: function() {
+        if (!root.bar) return
+        root.bar.run("hyprctl eval 'hl.exec_cmd(\"code\")'")
+      }
     }
   }
 }
