@@ -5,7 +5,7 @@ omarchy:
 	sudo pacman -S --noconfirm --needed linux-headers vim gparted mc visual-studio-code-bin glxinfo telegram-desktop xorg-xhost unrar wget \
 	        net-tools rawtherapee gimp telegram-desktop geeqie arduino flameshot  syncthing\
 	        fish ncdu vlc vlc-plugins-all ffmpeg stellarium kstars prusa-slicer stow
-	yay -S --noconfirm --needed google-chrome zfs-utils zfs-dkms mergerfs freecad-appimage realvnc-vnc-viewer auto-cpufreq
+	yay -S --noconfirm --needed google-chrome freecad-appimage realvnc-vnc-viewer-7 auto-cpufreq
 	sudo systemctl enable --now syncthing@$(USER).service
 	#fix gparted
 	xhost +si:localuser:root
@@ -163,7 +163,7 @@ git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfi
 
 zfs:
 	sudo pacman -S --noconfirm --needed linux-headers
-	yay -S --noconfirm --needed zfs-dkms
+	yay -S --noconfirm --needed zfs-dkms zfs-utils
 	sudo zpool import data1
 	sudo zpool set cachefile=/etc/zfs/zpool.cache data1
 	sudo systemctl enable --now zfs-scrub-weekly@zroot.timer
