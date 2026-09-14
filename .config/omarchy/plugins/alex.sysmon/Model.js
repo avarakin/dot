@@ -20,6 +20,13 @@ var ICONS = {
 // there is nowhere to persist a user ordering — only which chips are on.
 var CHIP_ORDER = ["cpu", "cpuTemp", "gpu", "gpuMemUtil", "gpuTemp", "vram", "net", "disk"]
 
+// Keys that close a logical group. A separator glyph is emitted after the
+// chip with one of these keys, so the bar reads as: CPU | GPU | I/O | RAM.
+// (ram is pinned last and ssd appended after disk, so they close their groups
+// too and are listed here even though they are not in CHIP_ORDER.)
+var GROUP_BREAKS = { cpuTemp: true, vram: true, ssd: true, ram: true }
+var SEP = "\u2502"
+
 // Every value is padded to a constant width so a reading that grows a digit
 // (9% -> 10%, 99C -> 100C) cannot shove the rest of the bar sideways. The
 // bar font is monospace, so padding with spaces is enough to pin the width.
@@ -301,13 +308,17 @@ function buildChips(state, options) {
       text = formatPercent(data.disk)
     }
 
-    if (text !== "") chips.push({ key: key, icon: icon, value: padLeft(text, width) })
+    if (text !== "") {
+      chips.push({ key: key, icon: icon, value: padLeft(text, width) })
+      if (GROUP_BREAKS[key]) chips.push({ key: "sep", value: SEP })
+    }
   }
 
   // A second disk chip for /ssd. Reuses the former vram icon; gated on its own
   // toggle so it can be hidden independently of the root disk chip.
   if (enabled("showSsdDisk") && data.ssdDisk !== null && data.ssdDisk !== undefined) {
     chips.push({ key: "ssd", icon: ICONS.vram, value: padLeft(formatPercent(data.ssdDisk), WIDTHS.percent) })
+    chips.push({ key: "sep", value: SEP })
   }
 
   // Memory is deliberately kept out of CHIP_ORDER and pinned to the very end.
@@ -325,7 +336,10 @@ function buildChips(state, options) {
 function barText(state, options) {
   var chips = buildChips(state, options)
   var parts = []
-  for (var i = 0; i < chips.length; i++) parts.push(chips[i].icon + " " + chips[i].value)
+  for (var i = 0; i < chips.length; i++) {
+    if (chips[i].key === "sep") parts.push(chips[i].value)
+    else parts.push(chips[i].icon + " " + chips[i].value)
+  }
   return parts.join("  ")
 }
 
@@ -335,7 +349,10 @@ function barText(state, options) {
 function barTextVertical(state, options) {
   var chips = buildChips(state, options)
   var parts = []
-  for (var i = 0; i < chips.length; i++) parts.push(chips[i].value.trim())
+  for (var i = 0; i < chips.length; i++) {
+    if (chips[i].key === "sep") parts.push(chips[i].value)
+    else parts.push(chips[i].value.trim())
+  }
   return parts.join("\n")
 }
 

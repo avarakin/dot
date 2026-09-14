@@ -273,13 +273,20 @@ test("ramDisplay switches memory between absolute and percent", () => {
 
 test("chips keep CHIP_ORDER regardless of which ones are on", () => {
   const keys = Model.buildChips(fullState(), { showVram: true }).map(c => c.key)
-  assert.deepEqual(keys, ["cpu", "cpuTemp", "gpu", "gpuMemUtil", "gpuTemp", "vram", "netDown", "netUp", "disk", "ssd", "ram"])
+  assert.deepEqual(keys, ["cpu", "cpuTemp", "sep", "gpu", "gpuMemUtil", "gpuTemp", "vram", "sep", "netDown", "netUp", "disk", "ssd", "sep", "ram"])
 })
 
 test("the /ssd chip renders after the root disk chip, before ram", () => {
   const keys = Model.buildChips(fullState(), {}).map(c => c.key)
   assert.equal(keys[keys.indexOf("ssd") - 1], "disk")
   assert.equal(keys[keys.length - 1], "ram")
+  // A group separator follows each group-closing chip. With vram off by
+  // default the GPU group closes at gpuTemp, so there are two separators:
+  // after cpuTemp and after ssd. With vram on there are three.
+  const sepsDefault = Model.buildChips(fullState(), {}).filter(c => c.key === "sep").length
+  assert.equal(sepsDefault, 2)
+  const sepsAll = Model.buildChips(fullState(), { showVram: true }).filter(c => c.key === "sep").length
+  assert.equal(sepsAll, 3)
   const ssd = Model.buildChips(fullState(), {}).find(c => c.key === "ssd")
   assert.equal(ssd.value.trim(), "91%")
   // Hidden by its own toggle, independently of the root disk chip.
@@ -298,7 +305,7 @@ test("barText renders nothing when every reading is missing", () => {
 
 test("vertical bars drop the icons and stack the values", () => {
   const vertical = Model.barTextVertical(fullState(), { showNet: false, showDisk: false, showSsdDisk: false })
-  assert.deepEqual(vertical.split("\n"), ["12%", "42°", "64%", "45%", "71°", "18G"])
+  assert.deepEqual(vertical.split("\n"), ["12%", "42°", "│", "64%", "45%", "71°", "18G"])
   // 28px of bar leaves no room for an icon next to a four-character reading.
   for (const line of vertical.split("\n")) assert.ok(line.length <= 4)
 })
