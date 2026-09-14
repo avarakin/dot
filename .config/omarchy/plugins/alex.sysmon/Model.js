@@ -18,7 +18,7 @@ var ICONS = {
 // Chips always render in this order. Per-widget settings live in the bar's
 // shell.json layout entry, and the manifest schema has no array type, so
 // there is nowhere to persist a user ordering — only which chips are on.
-var CHIP_ORDER = ["cpu", "cpuTemp", "gpu", "gpuMemUtil", "gpuTemp", "vram", "net", "disk", "ram"]
+var CHIP_ORDER = ["cpu", "cpuTemp", "gpu", "gpuMemUtil", "gpuTemp", "vram", "net", "disk"]
 
 // Every value is padded to a constant width so a reading that grows a digit
 // (9% -> 10%, 99C -> 100C) cannot shove the rest of the bar sideways. The
@@ -304,10 +304,19 @@ function buildChips(state, options) {
     if (text !== "") chips.push({ key: key, icon: icon, value: padLeft(text, width) })
   }
 
-  // A second disk chip for /ssd, always last. Reuses the disk icon; gated on
-  // its own toggle so it can be hidden independently of the root disk chip.
+  // A second disk chip for /ssd. Reuses the former vram icon; gated on its own
+  // toggle so it can be hidden independently of the root disk chip.
   if (enabled("showSsdDisk") && data.ssdDisk !== null && data.ssdDisk !== undefined) {
     chips.push({ key: "ssd", icon: ICONS.vram, value: padLeft(formatPercent(data.ssdDisk), WIDTHS.percent) })
+  }
+
+  // Memory is deliberately kept out of CHIP_ORDER and pinned to the very end.
+  if (enabled("showRam") && data.mem) {
+    if (String(opts.ramDisplay || "used") === "percent") {
+      chips.push({ key: "ram", icon: ICONS.ram, value: padLeft(formatPercent(data.mem.percent), WIDTHS.percent) })
+    } else {
+      chips.push({ key: "ram", icon: ICONS.ram, value: padLeft(formatBytes(data.mem.used), WIDTHS.size) })
+    }
   }
   return chips
 }

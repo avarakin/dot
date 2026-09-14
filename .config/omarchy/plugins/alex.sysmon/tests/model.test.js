@@ -273,12 +273,13 @@ test("ramDisplay switches memory between absolute and percent", () => {
 
 test("chips keep CHIP_ORDER regardless of which ones are on", () => {
   const keys = Model.buildChips(fullState(), { showVram: true }).map(c => c.key)
-  assert.deepEqual(keys, ["cpu", "cpuTemp", "gpu", "gpuMemUtil", "gpuTemp", "vram", "netDown", "netUp", "disk", "ram", "ssd"])
+  assert.deepEqual(keys, ["cpu", "cpuTemp", "gpu", "gpuMemUtil", "gpuTemp", "vram", "netDown", "netUp", "disk", "ssd", "ram"])
 })
 
-test("the /ssd chip renders last, after the root disk chip", () => {
+test("the /ssd chip renders after the root disk chip, before ram", () => {
   const keys = Model.buildChips(fullState(), {}).map(c => c.key)
-  assert.equal(keys[keys.length - 1], "ssd")
+  assert.equal(keys[keys.indexOf("ssd") - 1], "disk")
+  assert.equal(keys[keys.length - 1], "ram")
   const ssd = Model.buildChips(fullState(), {}).find(c => c.key === "ssd")
   assert.equal(ssd.value.trim(), "91%")
   // Hidden by its own toggle, independently of the root disk chip.
