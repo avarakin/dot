@@ -38,6 +38,7 @@
       "showVram": false,
       "showNet": true,
       "showDisk": true,
+      "showSsdDisk": true,
       "refreshIntervalSec": 2,
       "ramDisplay": "used",
       "tempUnit": "C",
@@ -100,6 +101,13 @@
         "type": "boolean",
         "label": "Show disk usage",
         "defaultValue": true
+      },
+      {
+        "key": "showSsdDisk",
+        "type": "boolean",
+        "label": "Show /ssd usage",
+        "defaultValue": true,
+        "description": "Usage of the /ssd mount, shown as the last disk chip."
       },
       {
         "key": "ramDisplay",

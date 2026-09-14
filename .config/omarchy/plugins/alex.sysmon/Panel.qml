@@ -28,6 +28,7 @@ Panel {
     showVram: setting("showVram", false) === true,
     showNet: setting("showNet", true) === true,
     showDisk: setting("showDisk", true) === true,
+    showSsdDisk: setting("showSsdDisk", true) === true,
     ramDisplay: String(setting("ramDisplay", "used")),
     tempUnit: String(setting("tempUnit", "C")).toUpperCase() === "F" ? "F" : "C"
   })

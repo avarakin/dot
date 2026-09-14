@@ -303,6 +303,12 @@ function buildChips(state, options) {
 
     if (text !== "") chips.push({ key: key, icon: icon, value: padLeft(text, width) })
   }
+
+  // A second disk chip for /ssd, always last. Reuses the disk icon; gated on
+  // its own toggle so it can be hidden independently of the root disk chip.
+  if (enabled("showSsdDisk") && data.ssdDisk !== null && data.ssdDisk !== undefined) {
+    chips.push({ key: "ssd", icon: ICONS.disk, value: padLeft(formatPercent(data.ssdDisk), WIDTHS.percent) })
+  }
   return chips
 }
 

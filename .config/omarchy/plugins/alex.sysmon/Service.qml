@@ -33,6 +33,7 @@ Item {
   property var cpuTemp: null
   property var net: null
   property var disk: null
+  property var ssdDisk: null
 
   // Previous cumulative counters, kept with the timestamp they were taken at
   // so a rate is computed against the interval that actually elapsed rather
@@ -52,8 +53,10 @@ Item {
     gpu: gpuController.reading,
     net: net,
     disk: disk,
+    ssdDisk: ssdDisk,
     netInterface: activeInterface,
-    diskMount: activeMount
+    diskMount: activeMount,
+    ssdMount: "/ssd"
   })
 
   function setting(name, fallback) {
@@ -214,6 +217,27 @@ Item {
     }
   }
 
+  // Second disk chip: usage of /ssd. Same df mechanism as the root disk chip,
+  // on the same slow timer cadence.
+  readonly property string ssdMount: "/ssd"
+
+  function refreshSsdDisk() {
+    if (ssdDiskProcess.running) return
+    ssdDiskProcess.command = ["bash", "-c", "exec timeout 5 df -P -- \"$1\"", "sysmon", root.ssdMount]
+    ssdDiskProcess.running = true
+  }
+
+  Process {
+    id: ssdDiskProcess
+    stdout: StdioCollector {
+      id: ssdDiskStdout
+      waitForEnd: true
+    }
+    onExited: function(exitCode) {
+      root.ssdDisk = exitCode === 0 ? Model.parseDiskPercent(String(ssdDiskStdout.text || "")) : null
+    }
+  }
+
   GpuController {
     id: gpuController
     intervalMs: Math.max(5000, root.refreshIntervalSec * 1000)
@@ -237,7 +261,10 @@ Item {
     running: true
     repeat: true
     triggeredOnStart: true
-    onTriggered: root.refreshDisk()
+    onTriggered: {
+      root.refreshDisk()
+      root.refreshSsdDisk()
+    }
   }
 
   Timer {
