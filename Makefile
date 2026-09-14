@@ -64,8 +64,8 @@ resolve-pgkbuild:
 	cd resolve && makepkg -si --noconfirm
 
 resolve:
-	unzip DaVinci_Resolve_Studio_21.0_Linux.zip
-	./DaVinci_Resolve_Studio_21.0_Linux.run --appimage-extract
+	unzip DaVinci_Resolve_Studio_21.0.4_Linux.zip
+	./DaVinci_Resolve_Studio_21.0.4_Linux.run --appimage-extract
 	sudo SKIP_PACKAGE_CHECK=1 ./squashfs-root/AppRun -i
 	sudo rm  /opt/resolve/libs/libgio* 
 	sudo rm  /opt/resolve/libs/libglib* 
