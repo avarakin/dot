@@ -27,7 +27,7 @@
       ],
       "center": [
         {
-          "id": "io.github.simasrazinskas.sysmon",
+          "id": "alex.sysmon",
           "showVram": true,
           "showGpuMemUtil": true,
           "showCpu": true
