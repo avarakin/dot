@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "alex.suspend",
+  "name": "Idle Suspend",
+  "version": "1.0.0",
+  "author": "alex",
+  "description": "Suspend after idle timeout from shell.json idle.suspend (seconds; 0 disables). Respects idle inhibitors. No sudo.",
+  "kinds": [
+    "service"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}
