@@ -287,7 +287,7 @@ function buildChips(state, options) {
       text = formatTemp(data.gpu.temp, tempUnit)
       width = WIDTHS.temp
     } else if (key === "vram" && enabled("showVram", false) && data.gpu && data.gpu.vramUsed !== null && data.gpu.vramUsed !== undefined) {
-      icon = ICONS.vram
+      icon = ICONS.ram
       text = formatBytes(data.gpu.vramUsed)
       width = WIDTHS.size
     } else if (key === "net" && enabled("showNet") && data.net) {
