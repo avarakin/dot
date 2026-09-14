@@ -7,7 +7,7 @@
   },
   "bar": {
     "position": "bottom",
-    "transparent": false,
+    "transparent": true,
     "centerAnchor": "omarchy.clock",
     "layout": {
       "left": [
@@ -28,9 +28,9 @@
       "center": [
         {
           "id": "alex.sysmon",
-          "showVram": true,
-          "showGpuMemUtil": true,
-          "showCpu": true
+          "showCpu": true,
+          "showGpuMemUtil": false,
+          "showVram": true
         }
       ],
       "right": [
