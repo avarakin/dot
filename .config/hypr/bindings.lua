@@ -28,5 +28,6 @@
 -- o.bind("SUPER + H", nil, "voxtype record toggle")
 -- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")
 
--- Suspend
-o.bind("ALT + S", "Suspend", "systemctl suspend")
+-- Suspend. SUPER is used (not ALT) so the chord still reaches Hyprland while
+-- the screensaver's focused terminal window has keyboard focus.
+o.bind("SUPER + U", "Suspend", "systemctl suspend")
