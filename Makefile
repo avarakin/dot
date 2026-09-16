@@ -7,6 +7,8 @@ omarchy:
 	        fish ncdu vlc vlc-plugins-all ffmpeg stellarium kstars prusa-slicer stow
 	yay -S --noconfirm --needed google-chrome freecad-appimage realvnc-vnc-viewer-7 auto-cpufreq
 	sudo systemctl enable --now syncthing@$(USER).service
+	sudo ufw allow syncthing
+	ufw reload
 	#fix gparted
 	xhost +si:localuser:root
 
@@ -66,7 +68,7 @@ resolve-pgkbuild:
 resolve:
 	unzip DaVinci_Resolve_Studio_21.0.4_Linux.zip
 	./DaVinci_Resolve_Studio_21.0.4_Linux.run --appimage-extract
-	sudo SKIP_PACKAGE_CHECK=1 ./squashfs-root/AppRun -i
+	SKIP_PACKAGE_CHECK=1 ./squashfs-root/AppRun -i
 	sudo rm  /opt/resolve/libs/libgio* 
 	sudo rm  /opt/resolve/libs/libglib* 
 	sudo rm  /opt/resolve/libs/libgmodule*
