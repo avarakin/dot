@@ -1,7 +1,7 @@
 {
   "theme": "omarchy-system",
   "lastChangelogVersion": "0.85.1",
-  "llamaServerUrl": "http://lab:8080",
+  "llamaServerUrl": "http://ws:8080",
   "packages": [
     "npm:pi-llama-cpp",
     "npm:@juicesharp/rpiv-web-tools",
