@@ -1,4 +1,4 @@
-desktop: speedup base extra syncthing kstars nvidia 
+desktop: speedup extra syncthing kstars nvidia
 
 
 omarchy:
@@ -160,7 +160,6 @@ yay:
 	rm -rf yay
 
 
-git clone "https://aur.archlinux.org/yay.git" && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay
 
 
 zfs:
@@ -245,7 +244,6 @@ scripts:
 	ln -s ~/dot/scripts  ~/.local/share/nemo/
 	ln -s ~/dot/scripts  ~/.local/share/nautilus/
 	mkdir -p ~/.local/share/kservices5/ServiceMenus
-	ln -s  resize_for_cn.desktop ~/.local/share/kservices5/ServiceMenus/ 
 
 git:
 	git config --global user.email "avarakin@gmail.com"
@@ -285,7 +283,7 @@ astap:
 	yay --noconfirm --needed  --mflags --skipchecksums -S astap-bin
 
 
-#These are applications for Desktop computer
+# These are applications for Desktop computer
 desktop:
 	-yay -S --noconfirm --needed  dropbox
 	-yay -S --noconfirm --needed  zoom
@@ -298,7 +296,7 @@ nvidia:
 	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
 	sudo systemctl enable --now nvidia-suspend.service
 	sudo systemctl enable --now nvidia-hibernate.service
-	sudo systemctl status tnvidia-suspend.service
+	sudo systemctl status nvidia-suspend.service
 	sudo systemctl status nvidia-hibernate.service
 
 PI:
