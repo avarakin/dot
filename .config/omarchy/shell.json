@@ -30,7 +30,10 @@
               "desktopId": "llama-launch",
               "match": "^kitty$"
             },
-            "PixInsight"
+            "PixInsight",
+            "firefox",
+            "foot",
+            "google-chrome"
           ]
         }
       ],
