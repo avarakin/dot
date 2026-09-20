@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e3a5f"/>
+      <stop offset="1" stop-color="#0b1c33"/>
+    </linearGradient>
+  </defs>
+  <!-- rounded background tile -->
+  <rect x="8" y="8" width="240" height="240" rx="48" fill="url(#bg)"/>
+  <!-- llama -->
+  <g fill="#f5f0e6">
+    <!-- ears -->
+    <path d="M96 52 q-14 -18 -4 -30 q16 2 22 20 z"/>
+    <path d="M160 52 q14 -18 4 -30 q-16 2 -22 20 z"/>
+    <!-- head -->
+    <ellipse cx="128" cy="84" rx="34" ry="30"/>
+    <!-- neck -->
+    <path d="M104 96 q-10 50 6 96 l44 0 q16 -46 6 -96 z"/>
+    <!-- body -->
+    <ellipse cx="128" cy="196" rx="72" ry="34"/>
+  </g>
+  <!-- legs -->
+  <g fill="#e8e0cf">
+    <rect x="76" y="216" width="16" height="28" rx="8"/>
+    <rect x="104" y="220" width="16" height="26" rx="8"/>
+    <rect x="136" y="220" width="16" height="26" rx="8"/>
+    <rect x="164" y="216" width="16" height="28" rx="8"/>
+  </g>
+  <!-- tail -->
+  <path d="M196 182 q22 -6 18 -26 q-16 6 -22 22 z" fill="#e8e0cf"/>
+  <!-- face -->
+  <g>
+    <circle cx="116" cy="78" r="5" fill="#2b2b3a"/>
+    <circle cx="140" cy="78" r="5" fill="#2b2b3a"/>
+    <circle cx="117.5" cy="76.5" r="1.6" fill="#ffffff"/>
+    <circle cx="141.5" cy="76.5" r="1.6" fill="#ffffff"/>
+    <ellipse cx="128" cy="98" rx="10" ry="7" fill="#f2c9c4"/>
+    <circle cx="124" cy="97" r="1.8" fill="#b98a84"/>
+    <circle cx="132" cy="97" r="1.8" fill="#b98a84"/>
+  </g>
+</svg>

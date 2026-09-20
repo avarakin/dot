@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Llama
+Comment=Launch llama-server
+Exec=kitty --single-instance /home/alex/scripts/llama-launch.sh
+Icon=llama-launch
+Terminal=false
+Categories=Development;
