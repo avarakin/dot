@@ -7,7 +7,7 @@
   },
   "bar": {
     "position": "bottom",
-    "transparent": false,
+    "transparent": true,
     "centerAnchor": "omarchy.clock",
     "layout": {
       "left": [
@@ -23,6 +23,14 @@
         },
         {
           "id": "alex.launchers"
+        },
+        {
+          "id": "io.github.joeyvigil.taskbar",
+          "apps": [
+            "foot",
+            "PixInsight",
+            "google-chrome"
+          ]
         }
       ],
       "center": [
