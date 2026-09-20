@@ -107,15 +107,6 @@ flutter:
 	flutter-doctor
 
 
-pi.dev:
-	sudo pacman -S --noconfirm --needed  npm  nodejs
-	mkdir -p ~/.local/npm
-	npm config set prefix ~/.local/npm
-	npm install -g --ignore-scripts @earendil-works/pi-coding-agent
-	-ln -s ~/dot/scripts ~/scripts
-	ln -s ~/.local/npm/bin/* ~/scripts
-	pi install npm:pi-llama-cpp
-
 
 fonts:
 	ln -s $$HOME/dot/fonts $$HOME/.fonts
