@@ -28,13 +28,13 @@ Item {
   readonly property bool probed: nvidia.probed && amd.probed && intel.probed
 
   function selectBackend() {
-    for (var i = 0; i < backends.length; i++) {
-      if (backends[i].available) {
-        activeBackend = backends[i]
-        return
-      }
+    // Force NVIDIA: only the NVIDIA backend is ever selected. If it is not
+    // available, nothing is active and the widget renders no GPU chips.
+    if (nvidia.available) {
+      activeBackend = nvidia
+    } else {
+      activeBackend = null
     }
-    activeBackend = null
   }
 
   function refresh() {
