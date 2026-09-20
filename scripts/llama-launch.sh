@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+exec > >(tee -a ~/ai/logs/llama-server.log) 2>&1
 
 # ── Launcher selection ──────────────────────────────────────────────
 # Change MODE to switch between launchers.
@@ -16,7 +17,7 @@ case "$MODE" in
                                 --flash-attn on \
                                 --ctx-size 130000 \
                                 --reasoning off  --jinja \
-                                --batch-size 2048 --ubatch-size 1024 \
+                                --batch-size 1024 --ubatch-size 256 \
                                 --no-context-shift \
                                 --parallel 1 \
                                 --defrag-thold 0.1 \

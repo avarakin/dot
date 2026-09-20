@@ -290,6 +290,13 @@ nvidia:
 	sudo systemctl status nvidia-suspend.service
 	sudo systemctl status nvidia-hibernate.service
 
+nvidia-watchdog:
+	# Raise the NVIDIA RC-watchdog notify timeout (default 7s) so long single
+	# CUDA launches (e.g. llama.cpp MTP speculative draft path) don't trip Xid 8.
+	# Community-validated range: 30-60s (ggml-org/llama.cpp#24576).
+	echo 'options nvidia NVreg_RegistryDwords="RmWatchDogTimeout=60"' | sudo tee /etc/modprobe.d/nvidia-watchdog.conf
+	sudo depmod -a
+
 PI:
 	#sudo pacman -S --noconfirm --needed cuda cudnn tensorflow-cuda
 	sudo rm /opt/PixInsight/bin/lib/libtensor* 

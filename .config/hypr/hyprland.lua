@@ -32,6 +32,8 @@ require("default.hypr.toggles")
 -- ENVIRONMENT --
 ---------------------
 
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "")
+hl.env("LIBVA_DRIVER_NAME", "")
 hl.env("WLR_NO_HARDWARE_CURSORS", "1")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
