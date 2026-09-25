@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for i in "$*"
+do
+        echo "$i"
+        name=`echo $i| sed 's/\..*//'`
+        echo "$name"
+        dnglab convert "$i"  "$name".DNG
+done
+

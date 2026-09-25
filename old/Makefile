@@ -1,5 +1,17 @@
 desktop: speedup extra syncthing kstars nvidia
 
+arch:
+	sudo pacman -Syu
+	sudo pacman -S --noconfirm --needed \
+		geeqie syncthing gparted emacs less firefox ghostty mc fish git make \
+		p7zip rsync unrar openssh unzip usbutils wget sof-firmware wireplumber \
+		net-tools inetutils reflector cups rawtherapee system-config-printer gimp ncdu partitionmanager \
+		vlc vlc-plugins-all x264 \
+		gst-libav gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly \
+		ffmpeg pipewire-alsa pulseaudio-alsa alsa-plugins \
+		telegram-desktop obsidian  timeshift  stellarium nemo xorg-xhost 
+	sudo systemctl enable --now cups.service
+
 
 omarchy:
 	sudo pacman -S --noconfirm --needed linux-headers vim gparted mc visual-studio-code-bin glxinfo telegram-desktop xorg-xhost unrar wget \
@@ -84,7 +96,7 @@ ubuntu-syncthing:
 	sudo systemctl start syncthing@alex.service
 	sudo systemctl enable syncthing@alex.service
 
-arch:
+arch-old:
 	sudo pacman -Syu
 	sudo pacman -S --noconfirm --needed \
 		terminator geeqie flameshot syncthing gparted emacs less firefox ghostty mc fish git make freecad \

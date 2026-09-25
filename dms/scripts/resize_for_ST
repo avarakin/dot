@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for i in "$*"
+do
+        echo "$i"
+        name=`echo $i| sed 's/\..*//'`
+        echo "$name"
+        convert  -define jpeg:extent=5000kb "$i" "$name"_st.jpg
+done
+

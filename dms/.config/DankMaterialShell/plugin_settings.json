@@ -1,0 +1,22 @@
+{
+  "systemMonitor": {
+    "enabled": true,
+    "cpuShowValue": true,
+    "tempShowValue": true,
+    "showCpuFreq": true,
+    "cpuFreqShowValue": true,
+    "memShowValue": true,
+    "diskShowValue": true,
+    "showGpu": true,
+    "gpuPciId": "10de:2d04",
+    "gpuShowValue": true,
+    "showGpuUtil": true,
+    "showGpuMemUtil": true,
+    "showGpuPower": true,
+    "gpuUtilShowValue": true,
+    "gpuMemUtilShowValue": true,
+    "gpuPowerShowValue": true,
+    "chartWidth": 40,
+    "historyLength": 121
+  }
+}

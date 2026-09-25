@@ -1,0 +1,4 @@
+#!/usr/bin/fish
+cd /home/alex/setiastrosuitepro
+source .venv/bin/activate.fish
+python setiastrosuitepro.py

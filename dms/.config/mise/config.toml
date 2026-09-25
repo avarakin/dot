@@ -1,0 +1,256 @@
+[dotfiles]
+"~/.bashrc" = {}
+"~/.config/DankMaterialShell/plugin_settings.json" = {}
+"~/.config/DankMaterialShell/settings.json" = {}
+"~/.config/foot/foot.ini" = {}
+"~/.config/ghostty/config" = {}
+"~/.config/hypr/hyprland.lua" = {}
+"~/.config/kitty/kitty.conf" = {}
+"~/.config/mise/config.toml" = {}
+"~/.config/mise/yay.sh" = {}
+"~/.config/systemd/user/dms.service.d/override.conf" = {}
+"~/.emacs" = {}
+"~/.pi/agent/AGENTS.md" = {}
+"~/.pi/agent/extensions" = {}
+"~/.pi/agent/settings.json" = {}
+"~/scripts" = {}
+
+
+
+[bootstrap.packages]
+"pacman:hyprland" = "latest"
+"pacman:quickshell" = "latest"
+"pacman:ghostty" = "latest"
+"pacman:xdg-desktop-portal-gtk" = "latest"
+"pacman:nvidia-open" = "latest"
+"pacman:mise" = "latest"
+"pacman:mesa-utils" = "latest"
+"pacman:alacritty" = "latest"
+"pacman:arduino-cli" = "latest"
+"pacman:xorg-xhost" = "latest"
+"pacman:vim" = "latest"
+"pacman:gparted" = "latest"
+"pacman:mc" = "latest"
+"pacman:glxinfo" = "latest"
+"pacman:telegram-desktop" = "latest"
+"pacman:unrar" = "latest"
+"pacman:wget" = "latest"
+"pacman:net-tools" = "latest"
+"pacman:rawtherapee" = "latest"
+"pacman:gimp" = "latest"
+"pacman:geeqie" = "latest"
+"pacman:linux-headers" = "latest"
+"pacman:linux-lts-headers" = "latest"
+"pacman:flameshot" = "latest"
+"pacman:syncthing" = "latest"
+"pacman:pipewire-pulse" = "latest"
+"pacman:pipewire-alsa" = "latest"
+"pacman:obsidian" = "latest"
+"pacman:fish" = "latest"
+"pacman:ncdu" = "latest"
+"pacman:vlc" = "latest"
+"pacman:vlc-plugins-all" = "latest"
+"pacman:kitty" = "latest"
+"pacman:foot" = "latest"
+"pacman:ffmpeg" = "latest"
+"pacman:stellarium" = "latest"
+"pacman:kstars" = "latest"
+"pacman:prusa-slicer" = "latest"
+"pacman:timeshift" = "latest"
+"pacman:platformio-core" = "latest"
+"pacman:github-cli" = "latest"
+"pacman:ttf-jetbrains-mono-nerd" = "latest"
+"pacman:fastfetch" = "latest"
+"aur:google-chrome" = "latest"
+"aur:visual-studio-code-bin" = "latest"
+"aur:freecad-appimage" = "latest"
+"aur:realvnc-vnc-viewer-7" = "latest"
+"aur:auto-cpufreq" = "latest"
+"aur:llama.cpp-cuda-git" = "latest"
+"aur:zfs-dkms" = "latest"
+"aur:zfs-utils" = "latest"
+"aur:mergerfs" = "latest"
+
+[tools]
+pi = "latest"
+oh-my-pi = "latest"
+node = "latest"
+bun = "latest"
+flutter = "latest"
+rust = "latest"
+
+
+[tasks.nvidia]
+run="""
+echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
+sudo systemctl enable --now nvidia-suspend.service
+sudo systemctl enable --now nvidia-hibernate.service
+sudo systemctl status nvidia-suspend.service
+sudo systemctl status nvidia-hibernate.service
+"""
+
+[tasks.zfs]
+run="""
+sudo pacman -S --noconfirm --needed linux-headers
+yay -S --noconfirm --needed zfs-dkms zfs-utils
+sudo zpool import data1
+sudo zpool set cachefile=/etc/zfs/zpool.cache data1
+sudo systemctl enable --now zfs-scrub-weekly@zroot.timer
+sudo systemctl enable --now zfs.target
+sudo systemctl enable --now zfs-import.target
+sudo systemctl enable --now zfs-import-cache
+sudo systemctl enable --now zfs-mount
+"""
+
+[tasks.bootstrap]
+run = """
+sudo mkdir -p /ssd /data
+systemctl --user restart pipewire
+xhost +si:localuser:root
+"""
+
+[tasks.resolve]
+description = "Install DaVinci Resolve from zip in ~/Downloads"
+run = """
+#!/usr/bin/env bash
+set -e
+
+# Step 1: Find the Resolve zip file in ~/Downloads
+mapfile -t ZIP_FILES < <(find ~/Downloads -maxdepth 1 -iname "*resolve*.zip" -type f | sort)
+
+NUM_ZIPS=0
+for zf in "${ZIP_FILES[@]}"; do
+  NUM_ZIPS=$((NUM_ZIPS + 1))
+done
+
+if [ "$NUM_ZIPS" -eq 0 ]; then
+  echo "[ERROR] No DaVinci Resolve zip file found in ~/Downloads"
+  exit 1
+fi
+
+if [ "$NUM_ZIPS" -gt 1 ]; then
+  echo "[INFO] Found $NUM_ZIPS DaVinci Resolve zip files:"
+  IDX=0
+  for zf in "${ZIP_FILES[@]}"; do
+    echo "  $((IDX+1)). $(basename "$zf")"
+    IDX=$((IDX + 1))
+  done
+  read -r -p "Select file number [1-$NUM_ZIPS]: " choice
+  choice=$((choice - 1))
+  if [ "$choice" -lt 0 ] || [ "$choice" -ge "$NUM_ZIPS" ]; then
+    echo "[ERROR] Invalid selection"
+    exit 1
+  fi
+  # Select the chosen file
+  IDX=0
+  for zf in "${ZIP_FILES[@]}"; do
+    if [ "$IDX" -eq "$choice" ]; then
+      RESOLVE_ZIP="$zf"
+    fi
+    IDX=$((IDX + 1))
+  done
+else
+  RESOLVE_ZIP="${ZIP_FILES[0]}"
+fi
+
+echo "[INFO] Using: $(basename "$RESOLVE_ZIP")"
+read -r -p "Continue? (y/N) " confirm
+if [[ ! "$confirm" =~ ^[yY]$ ]]; then
+  echo "Aborted."
+  exit 0
+fi
+
+# Step 2: Conduct all actions from the Makefile
+WORKDIR="$HOME/Downloads/resolve-install-$$"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+
+# Check if unzip is available
+if ! command -v unzip &>/dev/null; then
+  echo "[WARN] unzip is not installed."
+  read -r -p "Install it now? (y/N) " install_unzip
+  if [[ "$install_unzip" =~ ^[yY]$ ]]; then
+    echo "[INFO] Installing unzip..."
+    sudo pacman -S --noconfirm --needed unzip
+  else
+    echo "[ERROR] unzip is required to proceed."
+    rm -rf "$WORKDIR"
+    exit 1
+  fi
+fi
+
+# Unzip
+echo "[1/6] Extracting zip..."
+unzip "$RESOLVE_ZIP"
+if [ $? -ne 0 ]; then
+  echo "[ERROR] Failed to extract zip"
+  rm -rf "$WORKDIR"
+  exit 1
+fi
+
+# Find the .run file
+RUN_FILE=$(find . -maxdepth 1 -iname "*.run" -type f | head -n1)
+if [ -z "$RUN_FILE" ]; then
+  echo "[ERROR] No .run file found after extraction"
+  rm -rf "$WORKDIR"
+  exit 1
+fi
+
+echo "[2/6] Extracting AppImage..."
+./"$RUN_FILE" --appimage-extract
+if [ $? -ne 0 ]; then
+  echo "[ERROR] AppImage extraction failed"
+  rm -rf "$WORKDIR"
+  exit 1
+fi
+
+# Install
+echo "[3/6] Installing (this may take a moment)..."
+SKIP_PACKAGE_CHECK=1 QT_QPA_PLATFORM=xcb ./squashfs-root/AppRun -i
+INSTALL_EXIT=$?
+if [ $INSTALL_EXIT -ne 0 ]; then
+  echo "[ERROR] Installer failed with exit code $INSTALL_EXIT"
+  echo "[INFO] Temp files kept in: $WORKDIR"
+  exit 1
+fi
+
+# Remove conflicting libs
+echo "[4/6] Cleaning conflicting libraries..."
+sudo rm -f /opt/resolve/libs/libgio*
+sudo rm -f /opt/resolve/libs/libglib*
+sudo rm -f /opt/resolve/libs/libgmodule*
+if [ $? -ne 0 ]; then
+  echo "[ERROR] Failed to clean conflicting libraries"
+  rm -rf "$WORKDIR"
+  exit 1
+fi
+
+# Install compatibility library
+echo "[5/6] Installing libxcrypt-compat..."
+sudo pacman -S --noconfirm --needed libxcrypt-compat
+if [ $? -ne 0 ]; then
+  echo "[ERROR] Failed to install libxcrypt-compat"
+  rm -rf "$WORKDIR"
+  exit 1
+fi
+
+echo "[OK] DaVinci Resolve installed successfully!"
+
+# Step 3: Ask if user wants to remove extracted files
+echo ""
+read -r -p "Remove extracted files in $WORKDIR? (y/N) " cleanup
+if [[ "$cleanup" =~ ^[yY]$ ]]; then
+  rm -rf "$WORKDIR"
+  echo "Cleaned up extracted files."
+fi
+
+# Step 4: Ask if user wants to delete the zip file
+read -r -p "Delete the original zip file ($RESOLVE_ZIP)? (y/N) " delzip
+if [[ "$delzip" =~ ^[yY]$ ]]; then
+  rm -f "$RESOLVE_ZIP"
+  echo "Deleted zip file."
+fi
+
+echo ""
+echo "Done! Launch Resolve from your applications menu."
+"""

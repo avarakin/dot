@@ -1,0 +1,14 @@
+{
+  "lastChangelogVersion": "0.87.1",
+  "theme": "terminal",
+  "defaultProvider": "llama.cpp",
+  "defaultModel": "qwen3.6-27b",
+  "packages": [
+    "npm:pi-terminal-theme",
+    "npm:@juicesharp/rpiv-web-tools",
+    "npm:pi-docparser",
+    "npm:pi-observability",
+    "npm:pi-loop-police",
+    "npm:pi-collab"
+  ]
+}

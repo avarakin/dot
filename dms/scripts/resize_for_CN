@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for i in "$*"
+do
+        echo "$i"
+        name=`echo $i| sed 's/\..*//'`
+        echo "$name"
+        convert -resize 1500 -define jpeg:extent=500kb "$i" "$name"_cn.jpg
+done
+
