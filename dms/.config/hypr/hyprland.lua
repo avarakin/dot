@@ -98,6 +98,9 @@ hl.bind("SUPER + U", hl.dsp.exec_cmd("systemctl suspend"))
 hl.bind("SUPER + L", hl.dsp.exec_cmd("alacritty -e llama-server --models-preset ~/ai/models/preset.ini --models-dir ~/ai/models --models-max 1 --jinja --host 0.0.0.0 -ngl 999"))
 hl.bind("SUPER + RETURN", hl.dsp.exec_cmd("kitty"))
 
+-- Kill session (classic X11 Ctrl+Alt+Backspace)
+hl.bind("ALT + CTRL + BackSpace", hl.dsp.exit())
+
 hl.config({
     input = {
         kb_layout = "us,ru",

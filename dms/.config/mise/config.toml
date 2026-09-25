@@ -43,6 +43,16 @@
 "pacman:linux-lts-headers" = "latest"
 "pacman:flameshot" = "latest"
 "pacman:syncthing" = "latest"
+"pacman:tailscale" = "latest"
+"pacman:cups" = "latest"
+"pacman:cups-filters" = "latest"
+"pacman:cups-pk-helper" = "latest"
+"pacman:system-config-printer" = "latest"
+"pacman:cups-browsed" = "latest"
+"pacman:avahi" = "latest"
+"pacman:ghostscript" = "latest"
+"pacman:gsfonts" = "latest"
+"pacman:openssh" = "latest"
 "pacman:pipewire-pulse" = "latest"
 "pacman:pipewire-alsa" = "latest"
 "pacman:obsidian" = "latest"
@@ -107,6 +117,11 @@ run = """
 sudo mkdir -p /ssd /data
 systemctl --user restart pipewire
 xhost +si:localuser:root
+systemctl enable --now tailscaled
+systemctl --user enable --now syncthing.service
+systemctl enable --now avahi
+systemctl enable --now cups
+systemctl enable --now sshd
 """
 
 [tasks.resolve]
