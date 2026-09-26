@@ -58,6 +58,10 @@
 "pacman:pipewire-pulse" = "latest"
 "pacman:pipewire-alsa" = "latest"
 "pacman:obsidian" = "latest"
+"pacman:noto-fonts-emoji" = "latest"
+"pacman:less" = "latest"
+"pacman:xwayland-satellite" = "latest"
+"pacman:qtile" = "latest"
 "pacman:fish" = "latest"
 "pacman:ncdu" = "latest"
 "pacman:vlc" = "latest"
@@ -82,6 +86,7 @@
 "aur:zfs-dkms" = "latest"
 "aur:zfs-utils" = "latest"
 "aur:mergerfs" = "latest"
+"aur:mangowm" = "latest"
 
 [tools]
 pi = "latest"
