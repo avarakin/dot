@@ -89,45 +89,4 @@ require("dms.binds")
 require("dms.binds-user")
 require("dms.windowrules")
 
-
-
-
-hl.bind("mouse:276", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
-hl.bind("mouse:275", hl.dsp.window.close())
-hl.bind("SUPER + U", hl.dsp.exec_cmd("systemctl suspend"))
-hl.bind("SUPER + L", hl.dsp.exec_cmd("alacritty -e llama-server --models-preset ~/ai/models/preset.ini --models-dir ~/ai/models --models-max 1 --jinja --host 0.0.0.0 -ngl 999"))
-hl.bind("SUPER + RETURN", hl.dsp.exec_cmd("kitty"))
-
--- Kill session (classic X11 Ctrl+Alt+Backspace)
-hl.bind("ALT + CTRL + BackSpace", hl.dsp.exit())
-
-hl.config({
-    input = {
-        kb_layout = "us,ru",
-        kb_variant = ",phonetic",
-        kb_options = "grp:alt_shift_toggle",
-        follow_mouse = 0,
-        sensitivity = 0,
-        touchpad = {
-            natural_scroll = false,
-        },
-    },
-})
-
-hl.config({
-    general = {
-    gaps_in = 2,
-    gaps_out = 2,
-    resize_on_border = true,
- --       layout = "master",
-    },
-})
-
---hl.env("__GLX_VENDOR_LIBRARY_NAME", "mesa")
---hl.env("LIBVA_DRIVER_NAME", "radeonsi")
---hl.env("WLR_NO_HARDWARE_CURSORS", "1")
---hl.env("XCURSOR_SIZE", "24")
---hl.env("HYPRCURSOR_SIZE", "24")
-
---hl.env("XDG_CURRENT_DESKTOP","Hyprland")
---hl.env("XDG_SESSION_TYPE","wayland")
+require("local")

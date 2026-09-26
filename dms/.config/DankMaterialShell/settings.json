@@ -34,8 +34,10 @@
     }
   },
   "fontScale": 1.25,
-  "acMonitorTimeout": 60,
+  "acMonitorTimeout": 180,
+  "acLockTimeout": 300,
   "acSuspendTimeout": 600,
+  "lockBeforeSuspend": true,
   "fadeToLockEnabled": false,
   "osdPowerProfileEnabled": true,
   "barConfigs": [

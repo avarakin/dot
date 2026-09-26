@@ -5,6 +5,7 @@
 "~/.config/foot/foot.ini" = {}
 "~/.config/ghostty/config" = {}
 "~/.config/hypr/hyprland.lua" = {}
+"~/.config/hypr/local.lua" = {}
 "~/.config/kitty/kitty.conf" = {}
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/yay.sh" = {}
@@ -19,6 +20,7 @@
 
 [bootstrap.packages]
 "pacman:hyprland" = "latest"
+"pacman:niri" = "latest"
 "pacman:quickshell" = "latest"
 "pacman:ghostty" = "latest"
 "pacman:xdg-desktop-portal-gtk" = "latest"
@@ -90,9 +92,17 @@ flutter = "latest"
 rust = "latest"
 
 
+[tasks.dsh]
+description = "Run DeepSeek Harness (dsh) Web UI"
+run="""
+npx @deepseek-ai/dsh web
+"""
+
 [tasks.nvidia]
 run="""
-echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf 
+echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/tmp" | sudo tee /etc/modprobe.d/nvidia-power-management.conf
+echo "options nvidia-drm modeset=1" | sudo tee -a /etc/modprobe.d/nvidia-power-management.conf
+sudo mkinitcpio -P
 sudo systemctl enable --now nvidia-suspend.service
 sudo systemctl enable --now nvidia-hibernate.service
 sudo systemctl status nvidia-suspend.service
@@ -119,9 +129,25 @@ systemctl --user restart pipewire
 xhost +si:localuser:root
 systemctl enable --now tailscaled
 systemctl --user enable --now syncthing.service
-systemctl enable --now avahi
+systemctl enable --now avahi-daemon
 systemctl enable --now cups
 systemctl enable --now sshd
+"""
+
+[tasks.sleep-freeze]
+description = "Enable SYSTEMD_SLEEP_FREEZE_USER_SESSIONS to mitigate Aquamarine CDRMBackend suspend/resume crash (aquamarine#272)"
+run="""
+sudo mkdir -p /etc/systemd/logind.conf.d
+sudo tee /etc/systemd/logind.conf.d/90-sleep-freeze.conf << 'EOF'
+[Login]
+# Freeze user sessions during suspend to reduce the race window where
+# the compositor is mid-commit when connector state changes on resume.
+# Mitigates Aquamarine CDRMBackend::flushAsyncCommitEvents teardown crash (aquamarine#272).
+SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=1
+EOF
+sudo systemctl restart systemd-logind
+echo "[OK] SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=1 enabled"
+systemd-analyze cat-config systemd/logind.conf | grep -A2 "SleepFreeze" || true
 """
 
 [tasks.resolve]
