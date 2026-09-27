@@ -2,6 +2,7 @@
 "~/.bashrc" = {}
 "~/.config/DankMaterialShell/plugin_settings.json" = {}
 "~/.config/DankMaterialShell/settings.json" = {}
+"~/.config/alacritty/alacritty.toml" = {}
 "~/.config/foot/foot.ini" = {}
 "~/.config/ghostty/config" = {}
 "~/.config/hypr/hyprland.lua" = {}
