@@ -17,6 +17,18 @@
     "gpuMemUtilShowValue": true,
     "gpuPowerShowValue": true,
     "chartWidth": 40,
-    "historyLength": 121
+    "historyLength": 121,
+    "metricOrder": [
+      "cpu",
+      "cpuFreq",
+      "temp",
+      "gpu",
+      "gpuUtil",
+      "gpuMemUtil",
+      "gpuPower",
+      "mem",
+      "net",
+      "disk"
+    ]
   }
 }
