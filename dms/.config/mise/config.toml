@@ -7,6 +7,7 @@
 "~/.config/hypr/hyprland.lua" = {}
 "~/.config/hypr/local.lua" = {}
 "~/.config/kitty/kitty.conf" = {}
+"~/.config/mango/config.conf" = {}
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/yay.sh" = {}
 "~/.config/systemd/user/dms.service.d/override.conf" = {}
