@@ -22,6 +22,7 @@
   "workspaceActiveAppHighlightEnabled": true,
   "workspaceFocusedBorderEnabled": true,
   "appsDockColorizeActive": true,
+  "appsDockActiveColorMode": "primaryContainer",
   "appsDockEnlargeOnHover": true,
   "appsDockIconSizePercentage": 125,
   "appIdSubstitutions": [],

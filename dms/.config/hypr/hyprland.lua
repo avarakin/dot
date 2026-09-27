@@ -44,6 +44,7 @@ hl.config({
 	},
 	dwindle = {
 		preserve_split = true,
+		force_split = 2,
 	},
 	master = {
 		mfact = 0.5,

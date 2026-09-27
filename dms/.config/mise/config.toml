@@ -1,3 +1,6 @@
+[settings]
+dotfiles.root = "~/dot/dms"
+
 [dotfiles]
 "~/.bashrc" = {}
 "~/.config/DankMaterialShell/plugin_settings.json" = {}
@@ -79,6 +82,10 @@
 "pacman:github-cli" = "latest"
 "pacman:ttf-jetbrains-mono-nerd" = "latest"
 "pacman:fastfetch" = "latest"
+"pacman:htop" = "latest"
+"pacman:powertop" = "latest"
+"pacman:noctalia" = "latest"
+"pacman:turbostat" = "latest"
 "aur:google-chrome" = "latest"
 "aur:visual-studio-code-bin" = "latest"
 "aur:freecad-appimage" = "latest"
