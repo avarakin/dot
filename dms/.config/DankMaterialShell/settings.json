@@ -13,6 +13,14 @@
   "showSeconds": true,
   "useFahrenheit": true,
   "controlCenterShowMicPercent": true,
+  "showWorkspaceIndex": true,
+  "showWorkspaceName": true,
+  "showWorkspacePadding": true,
+  "showWorkspaceApps": true,
+  "workspaceAppIconSizeOffset": 1,
+  "dwlShowAllTags": true,
+  "workspaceActiveAppHighlightEnabled": true,
+  "workspaceFocusedBorderEnabled": true,
   "appsDockColorizeActive": true,
   "appsDockEnlargeOnHover": true,
   "appsDockIconSizePercentage": 125,
@@ -52,7 +60,10 @@
       "showOnLastDisplay": true,
       "leftWidgets": [
         "launcherButton",
-        "workspaceSwitcher",
+        {
+          "id": "workspaceSwitcher",
+          "enabled": true
+        },
         {
           "id": "appsDock",
           "enabled": true

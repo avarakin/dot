@@ -2,7 +2,7 @@
   "lastChangelogVersion": "0.87.1",
   "theme": "terminal",
   "defaultProvider": "llama.cpp",
-  "defaultModel": "qwen3.8-27b",
+  "defaultModel": "qwen3.8-27b-gsq-rco",
   "packages": [
     "npm:pi-terminal-theme",
     "npm:pi-docparser",

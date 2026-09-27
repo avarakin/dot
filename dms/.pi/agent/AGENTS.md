@@ -40,3 +40,7 @@ Rules:
   that investigation line entirely and move on or ask the user.
 - A block is not an error to debug. Do not investigate why it fired —
   just change approach.
+- Before re-issuing any tool call that just returned an error, change the
+  call in a way that addresses the error. Re-issuing an identical call that
+  already failed is a loop even before loop-police fires — fix the underlying
+  bug (e.g. a bad index, a wrong pattern) instead of retrying.
