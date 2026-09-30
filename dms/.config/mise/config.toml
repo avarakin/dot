@@ -163,12 +163,15 @@ run = """
 set -e
 # The LazyVim starter repo IS the Neovim config, so it goes in ~/.config/nvim.
 # Plugins are auto-installed by lazy.nvim into ~/.local/share/nvim/lazy/ (a different path).
+# We clone our fork (avarakin/starter), which adds tokyonight transparency.
+# To update the base config: cd ~/.config/nvim && git remote update && git pull upstream main
 if [ -e "$HOME/.config/nvim" ] && [ ! -d "$HOME/.config/nvim.bak" ]; then
   mv "$HOME/.config/nvim" "$HOME/.config/nvim.bak"
   echo "[INFO] Backed up existing ~/.config/nvim -> ~/.config/nvim.bak"
 fi
 if [ ! -d "$HOME/.config/nvim" ]; then
-  git clone https://github.com/LazyVim/starter.git "$HOME/.config/nvim"
+  git clone https://github.com/avarakin/starter.git "$HOME/.config/nvim"
+  git -C "$HOME/.config/nvim" remote add upstream https://github.com/LazyVim/starter.git
 fi
 nvim --headless "+Lazy! sync" +qa
 echo "[OK] LazyVim installed and plugins synced"
