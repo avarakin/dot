@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+mkdir -p ~/ai/logs
 exec > >(tee -a ~/ai/logs/llama-server.log) 2>&1
+trap 'kill %1 2>/dev/null' EXIT
 
 # ── Launcher selection ──────────────────────────────────────────────
 # Change MODE to switch between launchers.
@@ -11,8 +13,7 @@ case "$MODE" in
 
 preset)
     /usr/bin/llama-server --models-preset ~/dot/dms/ai/preset.ini \
-        --models-dir ~/ai/models --models-max 1 \
-        --jinja --host 0.0.0.0 -ngl 999
+        --models-dir ~/ai/models --models-max 1 --host 0.0.0.0  \
     ;;
 
 #3.8)

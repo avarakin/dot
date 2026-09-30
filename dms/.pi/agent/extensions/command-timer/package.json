@@ -1,0 +1,17 @@
+{
+  "name": "command-timer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.87.1",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,5 +1,6 @@
 [settings]
 dotfiles.root = "~/dot/dms"
+minimum_release_age = "0h"
 
 [dotfiles]
 "~/.bashrc" = {}
