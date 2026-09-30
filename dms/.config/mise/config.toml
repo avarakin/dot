@@ -161,18 +161,14 @@ curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 description = "Install LazyVim starter config for Neovim"
 run = """
 set -e
-NEOVIM_DIR="$HOME/.local/share/nvim"
-mkdir -p "$NEOVIM_DIR"
-if [ ! -d "$NEOVIM_DIR/lazy" ]; then
-  git clone --depth 1 https://github.com/LazyVim/starter.git "$NEOVIM_DIR/lazy"
-fi
-if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
+# The LazyVim starter repo IS the Neovim config, so it goes in ~/.config/nvim.
+# Plugins are auto-installed by lazy.nvim into ~/.local/share/nvim/lazy/ (a different path).
+if [ -e "$HOME/.config/nvim" ] && [ ! -d "$HOME/.config/nvim.bak" ]; then
   mv "$HOME/.config/nvim" "$HOME/.config/nvim.bak"
   echo "[INFO] Backed up existing ~/.config/nvim -> ~/.config/nvim.bak"
 fi
-mkdir -p "$HOME/.config"
-if [ ! -L "$HOME/.config/nvim" ]; then
-  ln -s "$NEOVIM_DIR/lazy" "$HOME/.config/nvim"
+if [ ! -d "$HOME/.config/nvim" ]; then
+  git clone https://github.com/LazyVim/starter.git "$HOME/.config/nvim"
 fi
 nvim --headless "+Lazy! sync" +qa
 echo "[OK] LazyVim installed and plugins synced"
