@@ -109,6 +109,20 @@ rust = "latest"
 neovim = "latest"
 
 
+[tasks.dms]
+run='''
+curl -fsSL https://install.danklinux.com | sh
+'''
+
+[tasks.yay]
+run="""
+git clone https://aur.archlinux.org/yay.git
+cd yay && makepkg -si
+cd ..
+rm -rf yay
+"""
+
+
 [tasks.dsh]
 description = "Run DeepSeek Harness (dsh) Web UI"
 run="""
