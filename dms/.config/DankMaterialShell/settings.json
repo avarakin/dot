@@ -46,7 +46,7 @@
   "fontScale": 1.25,
   "acMonitorTimeout": 180,
   "acLockTimeout": 300,
-  "acSuspendTimeout": 600,
+  "acSuspendTimeout": 1800,
   "lockBeforeSuspend": true,
   "fadeToLockEnabled": false,
   "osdPowerProfileEnabled": true,

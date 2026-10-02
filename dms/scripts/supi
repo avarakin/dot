@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -e
+
+SUDOERS_FILE="/etc/sudoers.d/supi-${USER}"
+
+cleanup() {
+    sudo rm -f "$SUDOERS_FILE"
+}
+
+trap cleanup EXIT INT TERM
+
+# Create temporary sudoers entry
+sudo tee "$SUDOERS_FILE" >/dev/null <<EOF
+${USER} ALL=(ALL) NOPASSWD: ALL
+EOF
+
+sudo chmod 440 "$SUDOERS_FILE"
+
+# Validate before starting pi
+if ! sudo visudo -cf "$SUDOERS_FILE" >/dev/null; then
+    echo "ERROR: Invalid sudoers configuration"
+    sudo rm -f "$SUDOERS_FILE"
+    exit 1
+fi
+
+echo "Temporary sudo access granted to ${USER}"
+echo "Starting pi..."
+
+# Run pi with all arguments passed to supi
+pi "$@"
+
+# cleanup() runs automatically here
