@@ -13,7 +13,7 @@ case "$MODE" in
 
 preset)
     /usr/bin/llama-server --models-preset ~/dot/dms/ai/preset.ini \
-        --models-dir ~/ai/models --models-max 1 --host 0.0.0.0  \
+        --models-dir ~/ai/models --models-max 1 --host 0.0.0.0  --log-prompts-dir /tmp/llama 
     ;;
 
 #3.8)
