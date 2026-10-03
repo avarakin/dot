@@ -19,6 +19,7 @@ minimum_release_age = "0h"
 "~/.emacs" = {}
 "~/.pi/agent/AGENTS.md" = {}
 "~/.pi/agent/extensions" = {}
+"~/.pi/agent/models.json" = {}
 "~/.pi/agent/settings.json" = {}
 "~/scripts" = {}
 

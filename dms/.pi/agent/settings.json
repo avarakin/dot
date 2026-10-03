@@ -1,31 +1,14 @@
 {
-  "lastChangelogVersion": "0.99.2",
+  "lastChangelogVersion": "1.0.0",
   "theme": "terminal",
-  "defaultProvider": "llama",
-  "defaultModel": "qwen3.8-27b-gsq-rco-medium",
-  "llamaSettings": {
-    "servers": [
-      {
-        "url": "http://192.168.1.111:8080",
-        "id": "llama",
-        "name": "llama",
-        "overrides": {}
-      }
-    ],
-    "reactToModelSelect": true,
-    "autoloadOnMessage": false,
-    "sortBy": "asc",
-    "pollingTimeout": 60000,
-    "serverTimeout": 1000
-  },
+  "defaultProvider": "llama.cpp",
+  "defaultModel": "qwen3.8-flash-next-iq3_s",
   "packages": [
     "npm:pi-terminal-theme",
     "npm:pi-docparser",
     "npm:pi-observability",
     "npm:pi-loop-police",
     "npm:pi-collab",
-    "npm:pi-web-access",
-    "npm:pi-llama-cpp",
-    "npm:pi-effort"
+    "npm:pi-web-access"
   ]
 }
