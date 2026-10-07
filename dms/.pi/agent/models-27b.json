@@ -1,0 +1,26 @@
+{
+  "providers": {
+    "llama.cpp": {
+      "modelOverrides": {
+        "qwen3.8-27b-gsq-rco": {
+          "thinkingLevelMap": {
+            "off": "off",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": null,
+            "xhigh": "xhigh"
+          },
+          "compat": {
+            "thinkingFormat": "chat-template",
+            "chatTemplateKwargs": {
+              "reasoning_effort": { "$var": "thinking.effort" },
+              "enable_thinking": { "$var": "thinking.enabled" },
+              "preserve_thinking": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
