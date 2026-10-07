@@ -32,3 +32,10 @@ fastfetch
 
 # Hermes Agent command
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+
+
+# Machine-specific settings
+case "$HOSTNAME" in
+  ws) export QT_SCALE_FACTOR=1.5 ;;
+esac
+
