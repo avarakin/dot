@@ -9,6 +9,7 @@
     "npm:pi-observability",
     "npm:pi-loop-police",
     "npm:pi-collab",
-    "npm:pi-web-access"
+    "npm:pi-web-access",
+    "npm:@narumitw/pi-plan-mode"
   ]
 }

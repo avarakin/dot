@@ -44,3 +44,32 @@ Rules:
   call in a way that addresses the error. Re-issuing an identical call that
   already failed is a loop even before loop-police fires — fix the underlying
   bug (e.g. a bad index, a wrong pattern) instead of retrying.
+
+## Never Scan the Whole Root Filesystem
+
+Never run a recursive scan rooted at `/` (or an equivalent whole-disk
+sweep). This includes, but is not limited to:
+
+- `find / ...`, `find . ...` when the cwd is `/`
+- `grep -r / ...`, `grep -r ... /`
+- `rg /`, `ag /`, `ack /`
+- `locate`/`updatedb` full-database rebuilds
+- `du /`, `tree /`, `ls -R /`, `chmod -R /`, `chown -R /`
+- any tool call whose search root resolves to `/` (including via a
+  trailing `..` chain or a symlink that escapes to `/`)
+
+This is forbidden even as a "last resort" and even when scoped by
+`-name`/`-path`/`--glob` filters — the traversal itself is the problem,
+not the filter.
+
+Instead:
+1. **Start in the project directory** — search the repo/cwd first.
+2. **Name explicit roots** — e.g. `find /etc /data/ai/Strata -name '*.json'`.
+3. **Use targeted tools** — `ss`/`lsof` for ports and sockets, `pkg-config`
+   or a package manager's query for installed files, `which`/`command -v`
+   for executables, `document_search` for documents.
+4. **Widen deliberately** — if a scoped search misses, broaden one directory
+   level at a time and say so, rather than jumping to `/`.
+
+If a genuine whole-system search seems necessary, **stop and ask the user
+first**, explaining why and what roots you propose.

@@ -19,6 +19,24 @@
               "reasoning_effort": { "$var": "thinking.effort", "omitWhenOff": true }
             }
           }
+        },
+        "swift-1.5-iq2_xs": {
+          "thinkingLevelMap": {
+            "off": "off",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "xhigh",
+            "xhigh": "xhigh",
+            "max": null
+          },
+          "compat": {
+            "thinkingFormat": "chat-template",
+            "chatTemplateKwargs": {
+              "enable_thinking": { "$var": "thinking.enabled" },
+              "reasoning_effort": { "$var": "thinking.effort", "omitWhenOff": true }
+            }
+          }
         }
       }
     }
