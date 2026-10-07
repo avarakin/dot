@@ -2,3 +2,4 @@ commands.log
 dms/.pi/agent/extensions/command-timer/node_modules/
 dms/.pi/agent/extensions/command-timer/dist/
 dms/.pi/agent/extensions/command-timer/package-lock.json
+dms/.config/DankMaterialShell/settings.json
