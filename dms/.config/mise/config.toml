@@ -109,10 +109,6 @@ rust = "latest"
 neovim = "latest"
 
 
-[tasks.dms]
-run='''
-curl -fsSL https://install.danklinux.com | sh
-'''
 
 [tasks.yay]
 run="""
@@ -155,6 +151,7 @@ sudo systemctl enable --now zfs-mount
 
 [tasks.bootstrap]
 run = """
+curl -fsSL https://install.danklinux.com | sh
 sudo mkdir -p /ssd /data
 systemctl --user restart pipewire
 xhost +si:localuser:root
