@@ -7,6 +7,9 @@
 # alias p='python'
 #
 
+# herdr: attach to remote workspace over SSH
+alias ws='herdr --remote ws'
+
 export PATH="$HOME/scripts:$PATH"
 
 export LLAMA_CPP_BASE_URL=http://ws:8080
