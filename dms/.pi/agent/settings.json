@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "1.0.2",
+  "lastChangelogVersion": "1.1.0",
   "theme": "terminal",
   "defaultProvider": "llama.cpp",
   "defaultModel": "qwen3.8-flash-next-iq3_s",
@@ -11,6 +11,7 @@
     "npm:pi-collab",
     "npm:pi-web-access",
     "npm:@narumitw/pi-plan-mode",
-    "npm:pi-memory"
+    "npm:billion-context",
+    "npm:@juicesharp/rpiv-todo"
   ]
 }

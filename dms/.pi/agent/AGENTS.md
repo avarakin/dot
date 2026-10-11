@@ -3,6 +3,11 @@
 For every prompt, follow this sequence:
 
 1. **Plan** — create a plan of the actions needed.
+   - For any plan that modifies project code, the plan must end with a
+     deploy-to-live step: build/compile the project using its standard
+     build command and restart the running service so the changes take
+     effect immediately. This step is covered by the same approval as
+     the rest of the plan.
 2. **Classify** — determine whether the plan modifies the system.
    A plan "modifies the system" if it includes any of:
    - Writing, creating, editing, or deleting files (including config files)
@@ -11,7 +16,10 @@ For every prompt, follow this sequence:
    - Any other action with side effects beyond reading and computation
 3. **If it modifies the system** — present the full plan to the user and request approval.
    - One approval covers the entire plan as presented.
-   - If the plan changes mid-execution, re-request approval.
+   - If the plan changes at any point — including when the *user* asks
+     for a change to the plan — the full revised plan must be presented
+     again and explicitly re-approved before execution continues. A
+     user edit request is not itself an approval of the revised plan.
    - Proceed only after explicit approval.
    - **HARD STOP: the moment you present a plan and ask for approval, you MUST end your turn.** Do not execute any part of the plan — not even the first step — in the same turn you asked. A trailing "Proceed?" / "Approved?" is a question, not permission. The plan runs only in a *later* turn, after the user's explicit yes. If you catch yourself about to call a modifying tool in the same message that asks for approval, stop.
 4. **If it does not modify the system** (read-only: reading files, searching, analysis, answering questions, web searches, web fetches) — proceed without asking.
