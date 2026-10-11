@@ -42,3 +42,21 @@ case "$HOSTNAME" in
   ws) export QT_SCALE_FACTOR=1.5 ;;
 esac
 
+# Run a GUI app that lives on the `ws` server, displayed on this machine.
+# -C <dir> sets the remote working directory (ccdciel needs its project dir as cwd).
+# Note the nested single quotes: ssh/waypipe join args with spaces and drop local
+# quoting, so `cd dir && app` would otherwise split at `&&` and escape waypipe.
+ws-gui() {
+    local dir=""
+    [[ $1 == -C ]] && { dir=$2; shift 2; }
+    local cmd="env QT_QPA_PLATFORM=wayland $*"
+    [[ -n $dir ]] && cmd="cd $dir && $cmd"
+    waypipe -n ssh ws sh -c "'$cmd'"
+}
+
+ccd() { ws-gui -C /home/alex/Projects/ccdciel ./src/ccdciel "$@"; }
+
+PI()  { ws-gui /opt/PixInsight/bin/PixInsight.sh; }
+
+. $HOME/secrets.sh
+
