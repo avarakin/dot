@@ -15,6 +15,7 @@ minimum_release_age = "0h"
 "~/.config/mango/config.conf" = {}
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/yay.sh" = {}
+"~/.config/niri/config.kdl" = {}
 "~/.config/systemd/user/dms.service.d/override.conf" = {}
 "~/.emacs" = {}
 "~/.pi/agent/AGENTS.md" = {}
