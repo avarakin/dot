@@ -58,5 +58,9 @@ ccd() { ws-gui -C /home/alex/Projects/ccdciel ./src/ccdciel "$@"; }
 
 PI()  { ws-gui /opt/PixInsight/bin/PixInsight.sh; }
 
+export ANTHROPIC_BASE_URL="http://ws:8080"
+export ANTHROPIC_AUTH_TOKEN="dummy"
+export CLAUDE_CODE_ATTRIBUTION_HEADER=0
+
 . $HOME/secrets.sh
 

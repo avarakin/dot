@@ -16,6 +16,7 @@ minimum_release_age = "0h"
 "~/.config/mise/config.toml" = {}
 "~/.config/mise/yay.sh" = {}
 "~/.config/niri/config.kdl" = {}
+"~/.config/opencode/opencode.jsonc" = {}
 "~/.config/systemd/user/dms.service.d/override.conf" = {}
 "~/.emacs" = {}
 "~/.pi/agent/AGENTS.md" = {}
@@ -117,6 +118,8 @@ bun = "latest"
 flutter = "latest"
 rust = "latest"
 neovim = "latest"
+claude = "latest"
+opencode = "latest"
 
 
 

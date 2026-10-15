@@ -18,3 +18,8 @@ action = "Paste"
 
 [general]
 import = ["~/.config/alacritty/dank-theme.toml", "~/.config/alacritty/local.toml"]
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"
