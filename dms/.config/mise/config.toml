@@ -23,6 +23,7 @@ minimum_release_age = "0h"
 "~/.pi/agent/extensions" = {}
 "~/.pi/agent/models.json" = {}
 "~/.pi/agent/settings.json" = {}
+"~/.pi/agent/web-search.json" = {}
 "~/scripts" = {}
 
 
