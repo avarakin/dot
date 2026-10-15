@@ -10,8 +10,6 @@
     "npm:pi-loop-police",
     "npm:pi-collab",
     "npm:pi-web-access",
-    "npm:@narumitw/pi-plan-mode",
-    "npm:billion-context",
-    "npm:@juicesharp/rpiv-todo"
+    "npm:@narumitw/pi-plan-mode"
   ]
 }
