@@ -1,8 +1,8 @@
 {
-  "lastChangelogVersion": "1.1.0",
+  "lastChangelogVersion": "1.5.0",
   "theme": "terminal",
-  "defaultProvider": "llama.cpp",
-  "defaultModel": "swift-1.5-iq2_xs",
+  "defaultProvider": "openrouter",
+  "defaultModel": "nvidia/nemotron-3-ultra-550b-a55b:free",
   "packages": [
     "npm:pi-terminal-theme",
     "npm:pi-docparser",
@@ -11,5 +11,9 @@
     "npm:pi-collab",
     "npm:pi-web-access",
     "npm:@narumitw/pi-plan-mode"
-  ]
+  ],
+  "extensionChangelogVersions": {
+    "{\"source\":\"npm:pi-docparser\",\"scope\":\"user\"}": "4.0.0",
+    "{\"source\":\"npm:pi-web-access\",\"scope\":\"user\"}": "0.35.0"
+  }
 }
