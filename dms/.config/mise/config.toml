@@ -3,6 +3,7 @@ dotfiles.root = "~/dot/dms"
 minimum_release_age = "0h"
 
 [dotfiles]
+"~/.agents" = {}
 "~/.bashrc" = {}
 "~/.config/DankMaterialShell/plugin_settings.json" = {}
 "~/.config/DankMaterialShell/settings.json" = {}
