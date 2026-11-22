@@ -962,9 +962,22 @@ async function clickVisible(page, selector) {
 /** Click the element whose text is exactly `text` (card labels, drawer rows). */
 async function clickText(page, text) {
   const box = await page.evaluate((txt) => {
-    const leaf = Array.from(document.querySelectorAll('*')).find(
-      (e) => e.children.length === 0 && (e.innerText || '').trim() === txt
-    );
+    // Wizard step labels render as "Content*" (the asterisk marks a required
+    // step), so exact equality never matches them. Strip trailing stars.
+    const norm = (s) => (s || '').replace(/\*+\s*$/, '').trim();
+    // Wizard step labels are not leaves: "Content*" is a link wrapping a span +
+    // the required-star badge, so a leaf-only search never matches. Take the
+    // deepest (smallest) element whose whole text equals the label.
+    // Keep only visible matches: Angular keeps template copies in the DOM with
+    // zero-size rects, and a smallest-area sort would pick one of those.
+    const matches = Array.from(document.querySelectorAll('*')).filter((e) => {
+      const r = e.getBoundingClientRect();
+      return norm(e.innerText) === txt && r.width > 0 && r.height > 0;
+    });
+    const leaf = matches.sort((a, b) => {
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      return (ra.width * ra.height) - (rb.width * rb.height);
+    })[0];
     if (!leaf) return null;
     const target =
       leaf.closest('a, button, li, [role=option], .list-group-item, .dropdown-item, .icon-picker-card') || leaf;
@@ -985,7 +998,7 @@ async function clickButtonText(page, text) {
       document.querySelectorAll('button, a, [role=button], .btn, .dropdown-item')
     ).filter((e) => {
       const r = e.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && !e.disabled && norm(e.innerText) === txt;
+      return r.width > 0 && r.height > 0 && !e.disabled && norm(e.innerText).replace(/\*+\s*$/, '') === txt;
     });
     const el = candidates[0];
     if (!el) return null;
@@ -1030,8 +1043,17 @@ async function assertLoggedIn(page) {
 
 /** Click a wizard tab by its label and wait for its step host to be visible. */
 async function goToStep(page, label) {
-  if (!(await clickText(page, label))) {
-    throw new Error(`wizard step "${label}" not found`);
+  const ok = await clickText(page, label);
+  if (!ok) {
+    // A failed match means the wizard is not where we think it is; report the
+    // page's real tab labels.
+    const tabs = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('li, a, button'))
+        .map((e) => (e.innerText || '').trim().replace(/\s+/g, ' '))
+        .filter((t) => t && t.length < 24)
+        .slice(0, 25)
+    );
+    throw new Error(`wizard step "${label}" not found (url=${page.url()}, tabs=[${tabs.join(' | ')}])`);
   }
   const id = STEP_IDS[label];
   if (id) {
@@ -1314,10 +1336,18 @@ async function selectFilterInRow(page, index, letter) {
 
 async function uploadFile(page, opts) {
   console.log(`Uploading ${path.basename(opts.file)} ...`);
-  await page.goto('https://app.astrobin.com/uploader', { waitUntil: 'networkidle2', timeout: 60000 });
+  // `networkidle2` never fires here: the AstroBin app keeps a long-lived
+  // service-worker/push connection, so the SPA is permanently "busy" and the
+  // goto times out. `domcontentloaded` is enough — every later step gates on
+  // its own waitForFunction.
+  await page.goto('https://app.astrobin.com/uploader', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await assertLoggedIn(page);
 
   // The id is duplicated on the <astrobin-drag-drop-area> wrapper: match the input.
+  // `domcontentloaded` returns before the Angular app has rendered the form;
+  // `page.$` right after would see nothing and fail with a layout-change error.
+  await page.waitForSelector('input#image-file-field', { timeout: 30000 });
+
   const input = await page.$('input#image-file-field');
   if (!input) throw new Error('upload form not found (layout changed?)');
   await input.uploadFile(opts.file);
@@ -1331,9 +1361,13 @@ async function uploadFile(page, opts) {
   );
   console.log('Upload complete.');
 
+  console.log('Filling title...');
   const field = await page.$('#image-title-field');
   if (!field) throw new Error('title field not found');
-  await field.click();
+  // `ElementHandle.click()` runs the actionable checks (stable bounding box,)
+  // which never complete on AstroBin's animating wizard. Focus the input
+  // directly; the keyboard path below only needs focus, not a mouse click.
+  await page.evaluate((sel) => document.querySelector(sel).focus(), '#image-title-field');
   await page.keyboard.down('Control');
   await page.keyboard.press('KeyA');
   await page.keyboard.up('Control');
@@ -1343,8 +1377,13 @@ async function uploadFile(page, opts) {
   if (value !== opts.title) throw new Error(`title did not stick (got "${value}")`);
   console.log(`Title set to "${value}".`);
 
+  console.log('Clicking Next (Basic -> Content)...');
   if (!(await clickVisible(page, '#upload-next-button'))) throw new Error('Next button not clickable');
-  await page.waitForFunction(() => /\/i\/[A-Za-z0-9]+\/edit/.test(location.pathname), { timeout: 60000 });
+  // AstroBin creates the image id on this click, which is a full save round-trip
+  // (the 1.7 MB upload is committed server-side); 60 s is not enough on a slow
+  // connection, so the wizard is given 3 minutes.
+  await page.waitForFunction(() => /\/i\/[A-Za-z0-9]+\/edit/.test(location.pathname), { timeout: 180000 });
+  console.log('On the edit page.');
   await sleep(1500);
 }
 
@@ -1357,11 +1396,13 @@ async function fillRequiredContent(page, opts) {
   await page.waitForSelector('.icon-picker-card', { timeout: 60000 });
   await sleep(800);
 
+  console.log('Content step: picking Photograph / subject / source cards...');
   await selectCard(page, 'Photograph');
   await selectCard(page, opts.subject);
 
   const pair = SOURCE_LABELS[opts.source];
   if (!pair) throw new Error(`unknown --source "${opts.source}"`);
+  console.log(`Source card: ${pair[0]} → ${pair[1]}`);
   // Clicking the card opens a drawer with the location type; an already
   // selected card needs no drawer (and none would be open).
   const cardState = await selectCard(page, pair[0]);
@@ -1471,25 +1512,56 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
   let browser;
   let page;
   try {
+    // Fetch the debugger WebSocket URL first, then connect. Connecting via
+    // `browserURL` leaves `browser.pages()` stalling on this machine; the
+    // endpoint path works (verified with a standalone probe).
+    const version = await fetchJson(`http://127.0.0.1:${opts.port}/json/version`, 15000);
     browser = await puppeteer.connect({
-      browserURL: `http://127.0.0.1:${opts.port}`,
+      browserWSEndpoint: version.webSocketDebuggerUrl,
       defaultViewport: null,
+      // The default protocol timeout (30 s) is too short on this machine:
+      // `Network.enable` on a page with AstroBin's service worker alive can
+      // take minutes, and the failure kills an in-progress upload.
+      protocolTimeout: opts.timeout,
     });
+    console.log('Browser connected.');
     const pages = await browser.pages();
+    console.log('Pages: ' + pages.map((p) => p.url().slice(0, 40)).join(' | '));
     page = pages.find((p) => /astrobin\.com/.test(p.url())) || pages[0] || (await browser.newPage());
-    await page.bringToFront();
+    // `bringToFront` can hang for minutes on a window that Wayland reports as
+    // occluded; bound it, and never let it block the upload.
+    await Promise.race([page.bringToFront().catch(() => {}), sleep(3000)]);
 
     if (opts.resume) {
       const id = String(opts.resume).match(/([A-Za-z0-9]+)\/?$/)?.[1] || opts.resume;
-      await page.goto(`https://app.astrobin.com/i/${id}/edit`, {
-        waitUntil: 'networkidle2',
-        timeout: 60000,
-      });
-      await assertLoggedIn(page);
+      const open = pages.find((p) => new RegExp(`/i/${id}(/|$)`).test(p.url()));
+      if (open) {
+        // The wizard tab is already open (e.g. an interrupted run). Navigating
+        // a background/occluded tab stalls; reuse it as-is.
+        page = open;
+        console.log(`Reusing open wizard tab for draft ${id} (no navigation).`);
+        await Promise.race([page.bringToFront().catch(() => {}), sleep(3000)]);
+        await sleep(1200);
+      } else {
+        console.log(`Opening draft ${id} ...`);
+        await page.goto(`https://app.astrobin.com/i/${id}/edit`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 60000,
+        });
+        console.log('Page loaded, checking login...');
+        await assertLoggedIn(page);
+        console.log('Logged in, waiting for wizard tabs...');
+        // The edit page renders its wizard tabs asynchronously; goToStep on a
+        // not-yet-built page sees zero tabs.
+        await page.waitForFunction(() => /Content/.test(document.body.innerText), { timeout: 180000 });
+        await sleep(1200);
+      }
       if (opts.title) {
         const field = await page.$('#image-title-field');
         if (field) {
-          await field.click();
+          // Focus directly: `ElementHandle.click()`'s actionable checks hang on
+          // AstroBin's animating wizard (see the same fix in `uploadFile`).
+          await page.evaluate((sel) => document.querySelector(sel).focus(), '#image-title-field');
           await page.keyboard.down('Control');
           await page.keyboard.press('KeyA');
           await page.keyboard.up('Control');

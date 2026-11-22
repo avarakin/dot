@@ -84,6 +84,15 @@ echo "Launching Chrome on port ${PORT}..."
   --remote-debugging-address=127.0.0.1 \
   --user-data-dir="$PROFILE" \
   --no-first-run --no-default-browser-check \
+  --disable-backgrounding-occluded-windows \
+  --disable-renderer-backgrounding \
+  --disable-background-timer-throttling \
+  --disable-features=CalculateNativeWinOcclusion \
+  --disable-background-networking \
+  --disable-sync \
+  --disable-component-update \
+  --disable-features=OptimizationHints \
+  --ash-no-nudges \
   >"$LOG" 2>&1 &
 disown || true
 
