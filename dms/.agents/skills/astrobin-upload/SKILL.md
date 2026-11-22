@@ -37,10 +37,17 @@ staging area, unlisted, until someone clicks **Publish** on the image page.
    scripts/start-chrome.sh          # reuses a running debug Chrome
    scripts/start-chrome.sh --kill   # stop the user's Chrome first
    scripts/start-chrome.sh --fresh  # re-copy the profile (new login state)
+   scripts/chrome-policy.sh         # one-time: enable RemoteDebuggingAllowed via managed policy (sudo)
    ```
 
 `start-chrome.sh` explains why the profile has to be copied: Chrome refuses
 `--remote-debugging-port` with the default `--user-data-dir`.
+
+Since Chrome 136 the switch is also gated by the enterprise policy
+`RemoteDebuggingAllowed`: with no policy dir, Chrome accepts the flag and
+starts no CDP server at all. `chrome-policy.sh` writes
+`/etc/opt/chrome/policies/managed/remote_debugging.json` once (needs sudo);
+after that the flag works on any profile. Verify with `chrome://policy`.
 
 ## Run it
 
@@ -176,6 +183,7 @@ the browser.
 | Title field empty after typing | Angular needs real key events: focus, select-all, then `page.keyboard.type`, not `element.value = ...`. |
 | AstroBin asks to log in | The copied profile's cookies expired. Run `start-chrome.sh --fresh`, or log in inside the automated window. |
 | CDP port dead after restart | Chrome refused the port because `--user-data-dir` was the default one. Check `~/.../chrome-automation.log`. |
+| Chrome runs, port 9222 never opens | `RemoteDebuggingAllowed` is off (Chrome 136+). Run `scripts/chrome-policy.sh` once, then restart `start-chrome.sh`. |
 
 ## Verifying afterwards
 
