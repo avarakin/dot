@@ -64,7 +64,8 @@ unless disabled.
 
 | Option | Effect |
 | --- | --- |
-| `--auto-description` | Built-in web search: looks the object up on Wikipedia (intro, then summary) and DuckDuckGo, and fills a 5–10 sentence description — object type, constellation, distance, discoverer + date, notable facts. Names are derived from the inventory object dir + title, catalogue designations first (`NGC 7635` before `Bubble`). |
+| `--auto-description` | Built-in web search: looks the object up on Wikipedia (intro, then summary), then the **Brave Search API** (when `BRAVE_API_KEY` is set), then DuckDuckGo, and fills a 5–10 sentence description — object type, constellation, distance, discoverer + date, notable facts. Names are derived from the inventory object dir + title, catalogue designations first (`NGC 7635` before `Bubble`). |
+| `--no-brave` | Skip Brave even if `BRAVE_API_KEY` is set (Wikipedia + DuckDuckGo only). |
 | `--description <text>` / `--description-file <path>` | Explicit description; overrides auto. |
 | `--setup <name>` / `--no-setup` | Override / skip the "Your setups" apply. |
 | `--no-acquisition` | Skip the acquisition CSV import. |
@@ -72,27 +73,52 @@ unless disabled.
 | `--object-dir <dir>` `--telescope <name>` | Inventory context for `--resume`. |
 | `--dry-run` | Print the derived setup name + acquisition CSV and exit. |
 | `--llm-description` | Rephrase the `--auto-description` source text with a headless `pi -p` call. Implies nothing about facts — see below. |
-| `--llm-model <pattern>` | Model for the LLM call (default: the configured `pi` model). |
+| `--llm-model <pattern>` | Model for the LLM call. Default `llama.cpp/swift-1.5-iq2_xs` (the machine's configured `pi` default); falls back to `$PI_MODEL` when set. |
 
 **`--llm-description` is a phrasing layer, never a fact source.** The retrieved
-Wikipedia/DuckDuckGo sentences are handed to `pi -p --no-session --no-tools`, asked to
+Wikipedia/Brave/DuckDuckGo sentences are handed to `pi -p --no-session --no-tools`, asked to
 produce 5–10 plain sentences using **only** the supplied source, and the result is
-accepted only if a deterministic fact guard passes: every number (digits and spelled-out
-numerals, compounds summed), every proper noun, and every designation in the output must
-appear in the source; ≤ 10 sentences; no markdown. On any mismatch the guard prints
+accepted only if a deterministic fact guard passes: every number (digits, spelled-out
+numerals, and English compounds parsed with multiplier logic — "nine hundred sixty-seven"
+= 967), every mid-sentence proper noun, and every designation in the output must appear in
+the source; ≤ 10 sentences; no markdown. On any mismatch the guard prints
 `llm description rejected by fact guard: …` and the deterministic text is used; if `pi`
 is missing or the call fails you get `llm unavailable`. `--dry-run` prints the winning
-path (`llm`, `deterministic`, `llm rejected`, `llm unavailable`).
+path (`llm`, `deterministic`, `llm rejected`, `llm unavailable`) and the source URLs used.
+
+The model must be pinned: `pi`'s own default resolves to an OpenRouter free model that
+returns `429 free-models-per-day` (limit 50/day), which silently degrades every call to
+`llm unavailable`. The default here is `llama.cpp/swift-1.5-iq2_xs` (local `llama.cpp`
+server on `:8080`); `~/.pi/agent/settings.json` sets the same pair as pi's global
+`defaultProvider`/`defaultModel`. `execFileSync` must pass `stdio: ['ignore','pipe','pipe']`
+— pi waits on piped stdin and stalls until the timeout fires.
 
 Measured behaviour: with grounding the model omits facts the source lacks (M31 with no
 discoverer in the source → no discoverer invented; sparse 2-fact source → 2 sentences).
 Asked for a description with the object name *only*, it invents plausible numbers —
 for NGC 4002 it fabricated Draco, 110 Mly, mag 12.5, 2.5 arcmin, a "NGC 4002 Group"
 (real values: Leo, 310 Mly, S0-a, mag 14.1, 1.1′ × 0.6′, Herschel 10 Apr 1785). That is
-why retrieval stays the source of truth and the guard is mandatory.
+why retrieval stays the source of truth and the guard is mandatory. The guard has true
+positives too: on the Bubble Nebula it rejected a sentence naming the "Hubble **Space**
+Telescope" that was not in the retrieved source.
 
 Requires `pi` on PATH with a working provider key, which breaks this skill's usual
-"no API keys" property, so keep the flag opt-in. Latency ~7 s, cost trivial.
+"no API keys" property, so keep the flag opt-in. Latency 1.5–2.5 s with the local model.
+
+**Brave as a retrieval source.** When `BRAVE_API_KEY` is present, `--auto-description`
+queries `https://api.search.brave.com/res/v1/llm/context`, which returns grounding
+snippets per source with hostname, age, and URL — structured JSON, so no `result__snippet`
+HTML scraping, no User-Agent spoofing, no "…" truncation, and no Wikipedia 429s. Snippet
+quality measured on 6 objects was equal or better than the DuckDuckGo scrape (Brave 5–7
+results vs DDG 4; more informative snippets on 4 of 6), and end-to-end the fact guard
+accepted 6/6 objects with Brave versus 4/6 with DuckDuckGo. Two caveats:
+
+- **Identity filter.** "Bubble Nebula" is NGC 7635 *and* NGC 6822, and Brave returns
+  both. Groups whose text mentions a catalogue number outside the candidate set are
+  dropped, so grounding never comes from the wrong article.
+- **Metered and rate-limited.** The free tier was removed in Feb 2026; the plan is $5 per
+  1k requests, and the API enforces 1 request/second (429 beyond that). ~1 request per
+  upload.
 
 **Preferred path for descriptions**: `--auto-description` is best-effort and mixes
 sources, so for anything important *you* run `web_search`/`source_check` on the object

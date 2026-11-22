@@ -25,8 +25,10 @@
  *   --llm-description         Rephrase the fetched source text with a
  *                             headless `pi -p` call; accepted only if the
  *                             fact guard matches the source
- *   --llm-model <pattern>     Model for --llm-description (default: pi's
- *                             configured model)
+ *   --llm-model <pattern>     Model for --llm-description (default:
+ *                             llama.cpp/swift-1.5-iq2_xs)
+ *   --no-brave                Skip the Brave Search API even if BRAVE_API_KEY
+ *                             is set (Wikipedia + DuckDuckGo only)
  *   --dry-run                 Print the derived setup/acquisition CSV and exit
  *   --port <n>                DevTools port (default 9222)
  *   --timeout <ms>            Max wait for the file upload (default 900000)
@@ -67,6 +69,16 @@ const SETUP_BY_TELESCOPE = {
   '8RC': 'RC8',
   '10RC': 'RC10',
 };
+
+/**
+ * Default model for --llm-description. Pinned to the local llama.cpp server so
+ * the skill never lands on a rate-limited free tier: pi's configured default is
+ * an OpenRouter free model that returns 429 free-models-per-day.
+ */
+const DEFAULT_LLM_MODEL = 'llama.cpp/swift-1.5-iq2_xs';
+
+/** Source URLs seen during retrieval, printed by --dry-run for fact checking. */
+const sourceUrls = new Set();
 
 /** Filter letter -> words used to recognise it in AstroBin's filter dropdown. */
 const FILTER_MATCHERS = {
@@ -132,6 +144,7 @@ function parseArgs(argv) {
     autoDescription: false,
     llmDescription: false,
     llmModel: null,
+    noBrave: false,
   };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
@@ -158,6 +171,7 @@ function parseArgs(argv) {
     else if (a === '--auto-description') opts.autoDescription = true;
     else if (a === '--llm-description') opts.llmDescription = true;
     else if (a === '--llm-model') opts.llmModel = next();
+    else if (a === '--no-brave') opts.noBrave = true;
     else if (a === '--dry-run') opts.dryRun = true;
     else if (a === '-h' || a === '--help') opts.help = true;
     else if (a.startsWith('--')) throw new Error(`unknown option: ${a}`);
@@ -597,6 +611,45 @@ async function wikipediaIntro(objectName) {
  * encyclopedic prose (drop SEO/marketing, credit lines, blog notes) and rank by
  * informativeness, never by count.
  */
+/**
+ * Brave Search API (needs BRAVE_API_KEY). The llm/context endpoint returns
+ * grounding snippets per source, with hostname + URL, which is what grounded
+ * generation and the fact guard want. No HTML scraping, so no regex fragility.
+ * Rate limit is 1 request/second; the plan is metered ($5 per 1k requests).
+ */
+async function braveContext(query, known) {
+  if (!process.env.BRAVE_API_KEY) return [];
+  const data = await fetchJson(
+    `https://api.search.brave.com/res/v1/llm/context?q=${encodeURIComponent(query)}`,
+    { 'X-Subscription-Token': process.env.BRAVE_API_KEY, Accept: 'application/json' }
+  );
+  const snippets = [];
+  for (const group of (data.grounding && data.grounding.generic) || []) {
+    const block = [group.title, ...(group.snippets || [])].join(' ');
+    // Identity check: a page about a different catalogue number is not about this
+    // object. "Bubble Nebula" is NGC 7635 and also NGC 6822, and the API returns
+    // both; grounding on the wrong article is worse than no grounding.
+    const found = designations(block);
+    if (known && known.length) {
+      const foreign = found.filter((d) => !known.includes(d));
+      if (foreign.length) continue;
+    }
+    if (group.url) sourceUrls.add(group.url);
+    for (const raw of group.snippets || []) {
+      // Strip markdown markers and citation brackets, keep prose intact.
+      const text = cleanText(raw.replace(/[#*^]|\[\d+\]/g, ' ').replace(/\s+/g, ' ').trim());
+      if (text.length >= 60) snippets.push(text);
+    }
+  }
+  return snippets.slice(0, 12);
+}
+
+/** Catalogue numbers in text, normalised without spaces (NGC 7635 -> NGC7635). */
+function designations(text) {
+  return (String(text).match(/\b(NGC|IC|Sh\s?2|LBN|Messier|M)(\s?\d+[a-z]?)/gi) || [])
+    .map((d) => d.replace(/\s+/g, ''));
+}
+
 async function duckduckgoSnippets(query) {
   const res = await fetch(
     `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
@@ -645,7 +698,12 @@ function normalizeObjectName(name) {
 function isJunkSentence(s) {
   return (
     /^(About This Object|About the|What Is It|Complete details|This page contains|This is in reference|Additional resources|Contents|Pictures, altitude|An interactive|Search and filter|Look to the|Naked Eye|Observation guide|Where is)/i.test(s) ||
-    /credit:|image of the|time to image|capturing the beauty/i.test(s)
+    /credit:|image of the|time to image|capturing the beauty/i.test(s) ||
+    // Site boilerplate: field-label dumps, chart/finder-chart furniture, citation
+    // fragments, and sentences that end mid-word (a scrape artefact).
+    /The physical distance from Earth|The physical size of the object|A name or catalog number|Charts created using|Limiting magnitudes:|Times are shown for timezone|Please set your location|Retrieved\s+October|Retrieved\s+November|\u2191|\[\d+\]/.test(s) ||
+    // A fragment with no terminating punctuation is a truncated scrape, not a sentence.
+    /[A-Za-z,)]\s*$/.test(s)
   );
 }
 
@@ -656,10 +714,12 @@ function isAstronomical(sentences) {
   );
 }
 
-async function describeName(name) {
+async function describeName(name, opts = {}) {
+  const known = designations(name);
   const sources = [
     () => wikipediaIntro(name),
     () => wikipediaSummary(name),
+    () => (opts.noBrave ? [] : braveContext(`${name} deep sky object constellation distance discovery`, known)),
     () => duckduckgoSnippets(`${name} deep sky object constellation distance`),
   ];
   let best = [];
@@ -715,7 +775,7 @@ async function fetchAutoDescription(names, opts = {}) {
   const candidates = Array.isArray(names) ? names : [normalizeObjectName(names)];
   let best = [];
   for (const name of candidates) {
-    const sentences = await describeName(name);
+    const sentences = await describeName(name, opts);
     if (sentences.length > best.length) best = sentences;
     if (best.length >= 5) break;
   }
@@ -739,10 +799,17 @@ async function fetchAutoDescription(names, opts = {}) {
 /** Run a one-shot, toolless, non-interactive pi call; null on any failure. */
 async function llmCall(prompt, model) {
   const args = ['-p', '--no-session', '--no-tools'];
-  if (model) args.push('--model', model);
+  args.push('--model', model || process.env.PI_MODEL || DEFAULT_LLM_MODEL);
   args.push(prompt);
   try {
-    const out = execFileSync('pi', args, { encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
+    // stdin must be ignored: pi waits for piped stdin when it is a pipe, which
+    // stalls the call until the timeout fires.
+    const out = execFileSync('pi', args, {
+      encoding: 'utf8',
+      timeout: 120000,
+      maxBuffer: 8 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     return out.trim() || null;
   } catch (e) {
     console.warn(`llm call failed: ${e.code === 'ENOENT' ? 'pi not found on PATH' : e.message}`);
@@ -800,20 +867,43 @@ function factGuard(summary, sourceText) {
     seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000, million: 1e6, billion: 1e9,
     trillion: 1e12,
   };
-  // Source facts can be spelled out too, so source values include word numbers.
-  const sourceValues = new Set((source.match(/\d+(?:\.\d+)?/g) || []).map((n) => Number(n)));
-  for (const raw of source.split(/\s+/)) {
-    const parts = raw.split(/[- ]/).filter((w) => wordNumbers[w] !== undefined);
-    if (parts.length) sourceValues.add(parts.reduce((sum, w) => sum + wordNumbers[w], 0));
-  }
-  for (const raw of normForCompare(summary).split(/\s+/)) {
-    // Compound numerals ("ninety-five", "two hundred") are summed, then verified.
-    const parts = raw.split(/[- ]/).filter((w) => wordNumbers[w] !== undefined);
-    if (!parts.length) continue;
-    const value = parts.reduce((sum, w) => sum + wordNumbers[w], 0);
-    if (!sourceValues.has(value)) {
-      problems.push(`number word "${raw}" (${value}) not in source`);
+  // Source facts can be spelled out too. Scan the source as a word stream with
+  // the same maximal-run logic so "nine hundred sixty-seven" yields 967.
+  const SCALE = { hundred: 100, thousand: 1000, million: 1e6, billion: 1e9, trillion: 1e12 };
+  function parseNumberRun(run) {
+    let total = 0, segment = 0;
+    for (const w of run) {
+      const v = wordNumbers[w];
+      if (SCALE[w]) {
+        segment = (segment || 1) * SCALE[w];
+        total += segment;
+        segment = 0;
+      } else {
+        segment += v;
+      }
     }
+    return total + segment;
+  }
+  function collectNumberValues(text) {
+    const values = new Set((text.match(/\d+(?:\.\d+)?/g) || []).map((n) => Number(n)));
+    // Split on whitespace AND hyphens so "sixty-seven" participates in a run.
+    const tokens = text.toLowerCase().split(/[\s-]+/);
+    let k = 0;
+    while (k < tokens.length) {
+      const run = [];
+      while (k < tokens.length && wordNumbers[tokens[k]] !== undefined) {
+        run.push(tokens[k]);
+        k++;
+      }
+      if (!run.length) { k++; continue; }
+      values.add(parseNumberRun(run));
+    }
+    return values;
+  }
+  const sourceValues = collectNumberValues(source);
+  const summaryValues = collectNumberValues(normForCompare(summary));
+  for (const v of summaryValues) {
+    if (!sourceValues.has(v)) problems.push(`number value ${v} not in source`);
   }
 
   // Proper nouns must be in the source; ordinary English words are not facts, so
@@ -829,7 +919,9 @@ function factGuard(summary, sourceText) {
   );
   const stop = new Set(['I', 'It', 'NGC', 'IC', 'Messier', 'The', 'This', 'These', 'M']);
   const seen = new Set();
-  for (const token of summary.match(/\b[A-Z][a-z\u00e0-\u00ff]+(?:'s)?\b/g) || []) {
+  // Only mid-sentence capitals are treated as claims: sentence-initial capitals
+  // are ordinary words that got capitalized by the sentence start.
+  for (const token of summary.match(/(?<=[a-z]\s)[A-Z][a-z\u00e0-\u00ff]+(?:'s)?\b/g) || []) {
     const key = token.toLowerCase().replace(/'s$/, '');
     if (stop.has(token) || common.has(key) || wordNumbers[key] !== undefined || seen.has(key)) continue;
     seen.add(key);
@@ -1328,6 +1420,7 @@ async function saveDraft(page) {
         '                [--source traveller|backyard|remote|public|hosting|mix] [--setup <name>]\n' +
         '                [--no-setup] [--no-acquisition] [--auto-description]\n' +
         '                [--inventory-root /data/Astro/CCD] [--dry-run] [--port 9222] [--llm-description] [--llm-model <pattern>]\n' +
+        '                [--no-brave] (default LLM model: ' + DEFAULT_LLM_MODEL + ')\n' +
         '       upload.js --resume <image-url-or-id> [--title "<title>"] [--object-dir <dir>]'
     );
     return;
@@ -1365,6 +1458,10 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
 
   if (opts.dryRun) {
     if (opts.description) console.log(`\nWould set description: ${opts.description}`);
+    if (sourceUrls.size) {
+      console.log(`\nSource URLs used (${sourceUrls.size}):`);
+      for (const u of sourceUrls) console.log(`  ${u}`);
+    }
     if (setup) console.log(`\nWould apply setup: ${setup}`);
     if (csv) console.log(`\nAcquisition CSV (${rows.length} row(s)):\n${csv}`);
     return;
