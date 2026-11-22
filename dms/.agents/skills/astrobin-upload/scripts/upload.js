@@ -93,7 +93,7 @@ const FILTER_MATCHERS = {
   H: /h[\s-]?alpha|\bha\b|hydrogen/i,
   O: /o[\s-]?iii|\bo3\b|oxygen/i,
   S: /s[\s-]?ii|\bs2\b|sulfur|sulphur/i,
-  L: /luminance|\blum\b|\bl\b|clear/i,
+  L: /luminance|\blum\b|\bl\b|clear|uv\/ir/i,
   R: /red/i,
   G: /green/i,
   B: /blue/i,
@@ -1383,6 +1383,42 @@ async function applyAcquisitionFilters(page, rows) {
   }
 }
 
+// The row filter widget is an ng-select with a virtual-scrolled option list:
+// only a handful of options exist in the DOM at a time, so scanning rendered
+// `.ng-option`s can miss a filter the user really has. Type a search term
+// first, then match. Terms are AstroBin's own catalogue names.
+const FILTER_SEARCH_TERMS = {
+  H: 'H-alpha',
+  O: 'OIII',
+  S: 'SII',
+  L: 'Luminance',
+  R: 'Red',
+  G: 'Green',
+  B: 'Blue',
+};
+
+// Visible dropdown options, deduped, with click coordinates.
+async function dropdownOptions(page) {
+  return page.evaluate(() => {
+    const seen = new Set();
+    return Array.from(document.querySelectorAll('.ng-dropdown-panel .ng-option'))
+      .filter((o) => {
+        const r = o.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })
+      .map((o) => {
+        const label = (o.innerText || '').replace(/\s+/g, ' ').trim();
+        const r = o.getBoundingClientRect();
+        return { label, x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      })
+      .filter((o) => {
+        if (!o.label || seen.has(o.label)) return false;
+        seen.add(o.label);
+        return true;
+      });
+  });
+}
+
 async function selectFilterInRow(page, index, letter) {
   const box = await page.evaluate((idx) => {
     const rows = document.querySelectorAll('.acquisition-table .datatable-body-row');
@@ -1397,41 +1433,65 @@ async function selectFilterInRow(page, index, letter) {
   }, index);
   if (!box) return false;
 
+  const re = FILTER_MATCHERS[letter];
+  if (!re) return false;
+
   await page.mouse.click(box.x, box.y);
   await sleep(500);
 
-  const option = await page.evaluate((filter) => {
-    const re = {
-      H: /h[\s-]?alpha|\bha\b|hydrogen/i,
-      O: /o[\s-]?iii|\bo3\b|oxygen/i,
-      S: /s[\s-]?ii|\bs2\b|sulfur|sulphur/i,
-      L: /luminance|\blum\b|\bl\b|clear/i,
-      R: /red/i,
-      G: /green/i,
-      B: /blue/i,
-    }[filter];
-    if (!re) return null;
-    const opts = Array.from(document.querySelectorAll('.ng-dropdown-panel .ng-option')).filter((o) => {
-      const r = o.getBoundingClientRect();
-      return r.width > 0 && r.height > 0;
-    });
-    const hit = opts.find((o) => re.test(o.innerText || ''));
-    if (!hit) return { found: false, options: opts.map((o) => (o.innerText || '').trim()).slice(0, 20) };
-    hit.scrollIntoView({ block: 'center' });
-    const r = hit.getBoundingClientRect();
-    return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, label: (hit.innerText || '').trim() };
-  }, letter);
+  // Pass 1: the option may already be rendered (short filter lists).
+  let opts = await dropdownOptions(page);
+  let hit = opts.find((o) => re.test(o.label));
 
-  if (!option || !option.found) {
-    await page.keyboard.press('Escape').catch(() => {});
-    if (option && option.options && option.options.length) {
-      console.warn(`  available filters: ${option.options.join(' | ')}`);
+  // Pass 2: type AstroBin's name for this filter so the list is narrowed and
+  // virtual scrolling cannot hide the one we want.
+  if (!hit) {
+    const term = FILTER_SEARCH_TERMS[letter];
+    const typed = await page.evaluate((t) => {
+      const inp = Array.from(document.querySelectorAll('ng-select input, .ng-select input')).find(
+        (i) => i.getBoundingClientRect().width > 0
+      );
+      if (!inp) return false;
+      inp.focus();
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(inp, t);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }, term);
+    if (typed) {
+      await sleep(700);
+      opts = await dropdownOptions(page);
+      hit = opts.find((o) => re.test(o.label));
+      // The typed term itself is a decent fallback when the catalogue label is
+      // unusual but ng-select matched it.
+      if (!hit) hit = opts.find((o) => new RegExp(term.replace(/[^a-z0-9]/gi, ''), 'i').test(o.label));
     }
+  }
+
+  if (!hit) {
+    await page.keyboard.press('Escape').catch(() => {});
+    if (opts.length) console.warn(`  filters offered: ${opts.map((o) => o.label).join(' | ')}`);
     return false;
   }
-  await page.mouse.click(option.x, option.y);
+  await page.mouse.click(hit.x, hit.y);
   await sleep(400);
+  console.log(`  row ${index + 1} filter -> ${hit.label}`);
   return true;
+}
+
+/// Read the rendered acquisition table back so a positional filter slip (rows
+/// sharing a date) is visible in the log instead of silent.
+async function reportAcquisitionRows(page) {
+  const rows = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.acquisition-table .datatable-body-row')).map((r) =>
+      Array.from(r.querySelectorAll('td, .datatable-body-cell'))
+        .map((c) => (c.innerText || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+    )
+  );
+  if (!rows.length) return;
+  console.log('\nAcquisition rows as AstroBin shows them:');
+  rows.forEach((cells, i) => console.log(`  #${String(i + 1).padStart(2)}  ${cells.join(' | ')}`));
 }
 
 // --- Upload flow -------------------------------------------------------------
@@ -1683,6 +1743,7 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
     if (opts.doSetup && setup) await applySetup(page, setup);
     if (opts.doAcquisition && csv) await importAcquisitionCsv(page, csv);
     if (opts.doAcquisition && csv) await applyAcquisitionFilters(page, rows);
+    if (opts.doAcquisition && csv) await reportAcquisitionRows(page);
 
     const url = await saveDraft(page);
     console.log(`\nOpen it at: ${url}`);

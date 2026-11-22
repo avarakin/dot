@@ -173,6 +173,36 @@ the browser.
    Skip with `--no-acquisition`.
 8. Clicks the visible Save button, waits for `/i/<id>`, verifies the staging banner.
 
+## Filter equipment: what has to exist for row assignment to work
+
+The per-row filter dropdown only offers filters attached to the image's
+equipment, i.e. the filters of the **setup** applied on the Equipment step. If a
+row shows "No items found", the setup is missing that filter object (or the
+Equipment step holds the wrong setup) — it is not something the CSV can carry.
+
+The account's setups (`GET /api/v2/equipment/equipment-preset/`) already cover
+every filter the inventory produces, so nothing needs defining:
+
+| Setup (preset id) | Filter ids | Covers |
+| --- | --- | --- |
+| `RC10` (110155) | 709, 9014, 701, 693, 27590, 27591, 27589 | Baader Blue, Clearglass, Green, Red, H-alpha 3nm, OIII 3nm, SII 3nm |
+| `RC8` (106261) | 709, 701, 693, 5127, 8483, 27590, 27591, 27589 | Baader Blue, Green, Red, S-II 8nm, UV/IR Cut-Luminance, H-alpha 3nm, OIII 3nm, SII 3nm |
+| `Esprit` (133860) | 709, 9014, 5000, 693, 27590, 27591, 27589 | Baader Blue, Clearglass, Green 36 mm, Red, H-alpha 3nm, OIII 3nm, SII 3nm |
+
+Note: `Esprit` has **no Luminance object**, while the inventory's Esprit objects
+(`LBN762`, `vdB158`) log Luminance frames. Its L rows will fall back to
+Clearglass unless id `8483` (Baader UV/IR Cut / Luminance 36 mm, already used by
+`RC8`) is added to that setup first.
+
+The row widget is an `ng-select` with a **virtual-scrolled** option list: only a
+few options exist in the DOM at once, so scanning rendered `.ng-option` nodes can
+miss a filter that does exist. `selectFilterInRow` therefore types AstroBin's own
+catalogue name (`H-alpha`, `OIII`, `SII`, `Luminance`, `Red`, `Green`, `Blue`) into
+the select and matches the narrowed list, falling back to a scan when the list is
+short. After assignment the script prints every row as AstroBin renders it
+(`Acquisition rows as AstroBin shows them`) so a positional slip — rows sharing a
+date get re-sorted — is visible rather than silent.
+
 ## Pitfalls (already handled — keep them handled)
 
 | Symptom | Cause |
