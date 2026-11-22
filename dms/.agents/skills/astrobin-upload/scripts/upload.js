@@ -70,6 +70,14 @@ const SETUP_BY_TELESCOPE = {
   '10RC': 'RC10',
 };
 
+// Imaging optics each saved setup must produce in the wizard fields; used to
+// catch the wrong setup being applied (the picker is ordered by use). Only
+// entries with a known AstroBin equipment name are checked.
+const EXPECTED_TELESCOPE = {
+  RC8: '8" f/8 ritchey',
+  RC10: '10" f/8 ritchey',
+};
+
 /**
  * Default model for --llm-description. Pinned to the local llama.cpp server so
  * the skill never lands on a rate-limited free tier: pi's configured default is
@@ -152,6 +160,9 @@ function parseArgs(argv) {
     const next = () => {
       const v = argv[++i];
       if (v === undefined) throw new Error(`missing value for ${a}`);
+      // A flag-like value means the option was used bare: `--resume --setup x`
+      // once took "--setup" as the draft id and opened /i/setup/edit.
+      if (v.startsWith('-')) throw new Error(`missing value for ${a} (got flag ${v})`);
       return v;
     };
     if (a === '--subject') opts.subject = next();
@@ -1113,15 +1124,73 @@ async function fillDescription(page, text) {
 }
 
 /** Apply a saved setup from the Equipment step's "Your setups" picker. */
+/**
+ * Drop AstroBin's prefilled "last used" equipment. A new wizard starts with
+ * whatever the account used most recently (here: a Canon EF 50mm lens on an
+ * EOS 6D with an AstroTrac mount), which is wrong for the telescope-specific
+ * uploads. Chips render with a remove control; click it for each match.
+ */
+async function removeEquipmentChips(page, patterns) {
+  const removed = await page.evaluate((pats) => {
+    const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const out = [];
+    for (const pat of pats) {
+      const hosts = Array.from(document.querySelectorAll('span, li, a, button')).filter(vis);
+      for (const el of hosts) {
+        const t = norm(el.innerText);
+        if (!t || t.length > 45 || !t.includes(pat)) continue;
+        let chip = el;
+        for (let d = 0; d < 6 && chip.parentElement; d++, chip = chip.parentElement) {
+          const closer = Array.from(chip.querySelectorAll('button, a, .tag-remove, .chip-remove, [class*=remove], [class*=close]')).find(vis);
+          if (closer) { closer.click(); out.push(t); break; }
+        }
+      }
+    }
+    return out;
+  }, patterns);
+  await sleep(1200);
+  if (removed.length) console.log(`Removed prefilled equipment: ${removed.join('; ')}`);
+  return removed;
+}
+
+/** Wizard fields AstroBin prefills from the previously used setup. */
+const STALE_EQUIPMENT = ['50mm', 'eos 6d', 'tt320'];
+
+/**
+ * AstroBin keeps per-image wizard drafts in localStorage
+ * (`astrobin-image-edit-<pk>`); a stale entry pre-fills the fields of a
+ * *new* wizard. Clear them before starting so fields begin empty.
+ */
+async function clearWizardCache(page) {
+  const cleared = await page.evaluate(() => {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('astrobin-image-edit-')) keys.push(k);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+    return keys;
+  });
+  if (cleared.length) console.log(`Cleared stale wizard caches: ${cleared.join(', ')}`);
+}
+
 async function applySetup(page, setupName) {
   await goToStep(page, 'Equipment');
-  await sleep(1200);
-  if (!(await clickButtonText(page, 'Your setups')) && !(await clickText(page, 'Your setups'))) {
-    throw new Error('"Your setups" button not found on the Equipment step');
+  await sleep(2500);
+  // AstroBin's wizard needs a beat after the Content cards are picked before a
+  // step switch actually renders the Equipment panel; without this the
+  // "Your setups" button is missing on the first attempt.
+  let opened = (await clickButtonText(page, 'Your setups')) || (await clickText(page, 'Your setups'));
+  if (!opened) {
+    await goToStep(page, 'Equipment');
+    await sleep(3500);
+    opened = (await clickButtonText(page, 'Your setups')) || (await clickText(page, 'Your setups'));
   }
+  if (!opened) throw new Error('"Your setups" button not found on the Equipment step');
   await sleep(1800);
 
-  const box = await page.evaluate((name) => {
+  const found = await page.evaluate((name) => {
     const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
     const want = norm(name);
     // Prefer the smallest ancestor that holds both the setup name and an
@@ -1131,26 +1200,59 @@ async function applySetup(page, setupName) {
       return r.width > 0 && r.height > 0 && norm(b.innerText) === 'apply';
     });
     let best = null;
+    let bestLen = Infinity;
     for (const btn of buttons) {
-      let node = btn.parentElement;
-      for (let depth = 0; depth < 12 && node; depth++, node = node.parentElement) {
-        if (norm(node.innerText).includes(want)) {
-          best = btn;
+      for (let node = btn.parentElement, depth = 0; depth < 8 && node; depth++, node = node.parentElement) {
+        const t = norm(node.innerText);
+        if (!t.includes('apply')) continue;
+        // Match the setup's own ROW, not a container that merely contains the
+        // name: walking ancestors with a plain includes() matched the whole
+        // picker (it lists every setup), so the FIRST Apply — 6D — was hit
+        // instead of RC10.
+        const exact = t === `${want} show details apply`;
+        const rowish = t.startsWith(`${want} `) && t.length <= want.length + 60;
+        if (exact || rowish) {
+          if (t.length < bestLen) { best = btn; bestLen = t.length; }
           break;
         }
       }
-      if (best) break;
     }
     if (!best) return null;
     best.scrollIntoView({ block: 'center' });
-    const r = best.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    best.click();          // element.click registers with Angular; mouse-coord
+                          // clicks on the wizard overlay are silently dropped
+    return true;
   }, setupName);
 
-  if (!box) throw new Error(`saved setup "${setupName}" not found in the Your setups picker`);
-  await page.mouse.click(box.x, box.y);
-  await sleep(3000);
-  console.log(`Applied setup "${setupName}".`);
+  if (!found) throw new Error(`saved setup "${setupName}" not found in the Your setups picker`);
+  await sleep(3500);
+
+  // Verify the wizard fields actually hold the setup's imaging telescope.
+  // AstroBin prefills a new wizard with the *last-used* equipment (for this
+  // account: a Canon 50mm lens on an EOS 6D), and applying a setup does not
+  // always replace those fields — so verify rather than trust the click.
+  await removeEquipmentChips(page, STALE_EQUIPMENT);
+
+  // Verify the imaging-telescopes field actually holds the setup's optics,
+  // and no longer holds the stale 50mm/6D/TT320 prefills.
+  const state = await page.evaluate(() => {
+    const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const lab = Array.from(document.querySelectorAll('label')).filter(vis)
+      .find((l) => /acquisition telescopes/i.test(l.innerText || ''));
+    if (!lab) return null;
+    const sec = lab.parentElement;
+    return Array.from(sec.querySelectorAll('span, li, a, button')).filter(vis)
+      .map((e) => (e.innerText || '').trim().replace(/\s+/g, ' '))
+      .filter((t) => t.length > 3 && t.length < 45);
+  });
+  if (!state) throw new Error('imaging telescopes field not found after applying the setup');
+  const stale = state.filter((t) => STALE_EQUIPMENT.some((p) => t.toLowerCase().includes(p)));
+  if (stale.length) throw new Error(`setup applied but the fields still hold the wrong equipment: ${stale.join('; ')}`);
+  const expected = EXPECTED_TELESCOPE[setupName];
+  if (expected && !state.some((t) => t.toLowerCase().includes(expected))) {
+    throw new Error(`setup "${setupName}" did not land: expected "${expected}" in the imaging telescopes field, got: ${state.join('; ') || '(empty)'}`);
+  }
+  console.log(`Applied setup "${setupName}"; imaging fields: ${state.join('; ') || '(empty)'}`);
 }
 
 /** Fill the CSV import modal and import the rows. */
@@ -1382,7 +1484,7 @@ async function uploadFile(page, opts) {
   // AstroBin creates the image id on this click, which is a full save round-trip
   // (the 1.7 MB upload is committed server-side); 60 s is not enough on a slow
   // connection, so the wizard is given 3 minutes.
-  await page.waitForFunction(() => /\/i\/[A-Za-z0-9]+\/edit/.test(location.pathname), { timeout: 180000 });
+  await page.waitForFunction(() => /\/i\/[A-Za-z0-9]+\/edit/.test(location.pathname), { timeout: 420000 });
   console.log('On the edit page.');
   await sleep(1500);
 }
@@ -1576,6 +1678,7 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
     }
 
     if (opts.description) await fillDescription(page, opts.description);
+    if (opts.doSetup && setup) await clearWizardCache(page);
     await fillRequiredContent(page, opts);
     if (opts.doSetup && setup) await applySetup(page, setup);
     if (opts.doAcquisition && csv) await importAcquisitionCsv(page, csv);
