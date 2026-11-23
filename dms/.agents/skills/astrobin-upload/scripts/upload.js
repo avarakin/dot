@@ -153,6 +153,11 @@ function parseArgs(argv) {
     llmDescription: false,
     llmModel: null,
     noBrave: false,
+    // Acquisition sessions are grouped by imaging night, not calendar date.
+    nightCutoff: 12,
+    // CSV column carrying the equipment-database filter id ("" = no filters in
+    // the CSV; filters are then assigned per row in the wizard).
+    csvFilterColumn: 'filter',
   };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
@@ -183,6 +188,17 @@ function parseArgs(argv) {
     else if (a === '--llm-description') opts.llmDescription = true;
     else if (a === '--llm-model') opts.llmModel = next();
     else if (a === '--no-brave') opts.noBrave = true;
+    else if (a === '--no-csv-filters') opts.csvFilterColumn = null;
+    else if (a === '--csv-filter-column') opts.csvFilterColumn = next();
+    else if (a === '--night-cutoff') {
+      const v = next();
+      const m = String(v).match(/^(\d{1,2})(?::(\d\d))?$/);
+      if (!m) throw new Error(`--night-cutoff expects HH:MM (e.g. 12:00), got ${v}`);
+      const hh = Number(m[1]);
+      const mm = Number(m[2] || 0);
+      if (hh > 23 || mm > 59) throw new Error(`--night-cutoff out of range: ${v}`);
+      opts.nightCutoff = hh + mm / 60;
+    }
     else if (a === '--dry-run') opts.dryRun = true;
     else if (a === '-h' || a === '--help') opts.help = true;
     else if (a.startsWith('--')) throw new Error(`unknown option: ${a}`);
@@ -206,14 +222,53 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const pad2 = (n) => String(n).padStart(2, '0');
 
-/** Local date (YYYY-MM-DD) for a FITS DATE-OBS, which is UTC. */
-function utcDateToLocal(s) {
+/**
+ * Parse an observation timestamp into a Date. FITS DATE-OBS is UTC; a bare
+ * value is read as UTC and rendered in local time, which is the convention
+ * AstroBin's own detector uses.
+ */
+function obsInstant(s) {
   if (!s) return null;
-  let iso = String(s).trim().replace(' ', 'T');
+  const t = String(s).trim();
+  // EXIF stamps are local: "2026:11:09 01:16:51".
+  const exif = t.match(/^(\d{4}):(\d\d):(\d\d)[ T](\d\d):(\d\d)(?::(\d\d))?/);
+  if (exif) {
+    const d = new Date(
+      Number(exif[1]),
+      Number(exif[2]) - 1,
+      Number(exif[3]),
+      Number(exif[4]),
+      Number(exif[5]),
+      Number(exif[6] || 0)
+    );
+    return isNaN(d.getTime()) ? null : d;
+  }
+  let iso = t.replace(' ', 'T');
   if (!/[zZ]|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z';
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return String(s).slice(0, 10);
+  if (!isNaN(d.getTime())) return d;
+  // Unparseable: keep the leading date if present.
+  const m = t.match(/^(\d{4})-(\d\d)-(\d\d)/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
+function localDateOf(d) {
+  if (!d) return null;
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/**
+ * The imaging *night* a frame belongs to. A session runs from evening through
+ * morning, so frames stamped before `cutoffHour` (local, default 12:00) are
+ * attributed to the night that started on the previous calendar day. Without
+ * this, one night of data is split into two acquisition sessions across
+ * midnight — e.g. 22:30 on the 8th and 01:16 on the 9th become two dates.
+ */
+function nightOf(d, cutoffHour = 12) {
+  if (!d) return null;
+  const x = new Date(d.getTime());
+  if (x.getHours() < cutoffHour) x.setDate(x.getDate() - 1);
+  return localDateOf(x);
 }
 
 /** Recursively list files, skipping hidden, master and calibration dirs. */
@@ -289,7 +344,7 @@ function intOrNull(v) {
 }
 
 /** FITS light frames under an inventory object directory. */
-function fitsFrames(objectDir) {
+function fitsFrames(objectDir, cutoffHour = 12) {
   const rows = [];
   for (const file of walkFiles(objectDir)) {
     if (!/\.(fits|fit|fts)$/i.test(file)) continue;
@@ -303,7 +358,7 @@ function fitsFrames(objectDir) {
     if (type && !type.includes('LIGHT')) continue;
     const duration = numOrNull(h.EXPTIME);
     if (!(duration > 0)) continue;
-    const date = utcDateToLocal(h['DATE-OBS']);
+    const date = nightOf(obsInstant(h['DATE-OBS']), cutoffHour);
     if (!date) continue;
     const rawFilter = String(h.FILTER || '').trim().toUpperCase();
     const letter = rawFilter.slice(0, 1);
@@ -321,7 +376,7 @@ function fitsFrames(objectDir) {
 }
 
 /** DSLR/mirrorless frames under an inventory object directory, via exiv2. */
-function exifFrames(objectDir) {
+function exifFrames(objectDir, cutoffHour = 12) {
   const files = walkFiles(objectDir).filter((f) =>
     /\.(cr3|cr2|nef|arw|dng|raf|orf|jpg|jpeg)$/i.test(f)
   );
@@ -366,7 +421,7 @@ function exifFrames(objectDir) {
       const r = rec[f];
       if (!r) continue;
       const dt = r['Exif.Photo.DateTimeOriginal'];
-      const date = dt ? dt.slice(0, 10).replace(/:/g, '-') : null;
+      const date = nightOf(obsInstant(dt), cutoffHour);
       const duration = parseExposure(r['Exif.Photo.ExposureTime']);
       if (!date || !(duration > 0)) continue;
       rows.push({
@@ -437,18 +492,31 @@ function aggregateFrames(frames) {
 }
 
 /** AstroBin CSV: filter is deliberately omitted, it is set in the UI. */
-function acquisitionCsv(rows) {
+/**
+ * Filter ids from AstroBin's equipment database, as stored on acquisition
+ * sessions (the `filter2` field the wizard writes; the number that appears in
+ * a filter's equipment-database page URL). These are the filters on this
+ * account's filter wheels, so they are only correct for this inventory — the
+ * driver verifies the imported rows and falls back to per-row selection when
+ * AstroBin ignores the column.
+ */
+const FILTER_DB_IDS = { L: 8483, B: 4982, G: 5000, R: 5104, H: 27590, O: 27591, S: 5127 };
+
+function acquisitionCsv(rows, filterColumn) {
+  // The wizard's own field for a session filter is `filter2`; a column named
+  // `filter` is silently dropped by the importer (observed empirically).
   const columns = ['date', 'number', 'duration'];
   if (rows.some((r) => r.iso != null)) columns.push('iso');
   if (rows.some((r) => r.binning != null)) columns.push('binning');
   if (rows.some((r) => r.gain != null)) columns.push('gain');
   if (rows.some((r) => r.sensorCooling != null)) columns.push('sensorCooling');
+  if (filterColumn) columns.splice(1, 0, filterColumn);
   const lines = [columns.join(',')];
   for (const r of rows) {
     lines.push(
       columns
         .map((c) => {
-          const v = r[c];
+          const v = c === filterColumn ? FILTER_DB_IDS[r.filter] : r[c];
           return v == null ? '' : String(v);
         })
         .join(',')
@@ -456,6 +524,13 @@ function acquisitionCsv(rows) {
   }
   return lines.join('\n');
 }
+
+/**
+ * Resolve this setup's filter equipment ids, so the acquisition CSV can carry
+ * filters itself instead of us driving a dropdown per row. Read from the same
+ * logged-in session: the preset list is per-user, and each id's name is what we
+ * match our L/R/G/B/H/O/S letters against.
+ */
 
 function fmtIntegration(seconds) {
   let s = Math.round(seconds);
@@ -498,8 +573,8 @@ function scanInventory(opts) {
 
   let frames = [];
   try {
-    frames = fitsFrames(ctx.objectDir);
-    if (!frames.length) frames = exifFrames(ctx.objectDir);
+    frames = fitsFrames(ctx.objectDir, opts.nightCutoff);
+    if (!frames.length) frames = exifFrames(ctx.objectDir, opts.nightCutoff);
   } catch (e) {
     console.warn(`warning: could not scan ${ctx.objectDir}: ${e.message}`);
   }
@@ -507,10 +582,12 @@ function scanInventory(opts) {
   return { ctx, setup, rows };
 }
 
-function describeAcquisition(ctx, setup, rows) {
+function describeAcquisition(ctx, setup, rows, opts) {
   console.log('');
   console.log('Inventory:', ctx ? `${ctx.telescope}/${ctx.object}` : '(not under inventory root)');
   console.log('AstroBin setup:', setup || '(none — telescope not in the mapping)');
+  const hh = Math.floor(opts.nightCutoff);
+  console.log(`Acquisition dates are imaging nights (frames before ${pad2(hh)}:00 belong to the previous day)`);
   if (!rows.length) {
     console.log('Acquisition: no light frames found');
     return;
@@ -1024,10 +1101,29 @@ async function clickButtonText(page, text) {
 
 /** Select an icon-picker card by its first line of text; no-op if selected. */
 async function selectCard(page, label) {
+  // A resumed wizard renders the picker asynchronously; give it a moment
+  // before calling the option missing.
+  await page
+    .waitForFunction(
+      (lbl) => {
+        const cards = Array.from(document.querySelectorAll('.icon-picker-card'));
+        const first = (c) => (c.innerText || '').trim().split('\n')[0].trim();
+        return (
+          cards.some((c) => first(c) === lbl) ||
+          cards.some((c) => (c.innerText || '').replace(/\s+/g, ' ').toLowerCase().includes(lbl.toLowerCase())) ||
+          cards.some((c) => c.classList.contains('selected'))
+        );
+      },
+      { timeout: 15000 },
+      label
+    )
+    .catch(() => {});
   const state = await page.evaluate((lbl) => {
-    const card = Array.from(document.querySelectorAll('.icon-picker-card')).find(
-      (c) => (c.innerText || '').trim().split('\n')[0].trim() === lbl
-    );
+    const cards = Array.from(document.querySelectorAll('.icon-picker-card'));
+    const first = (c) => (c.innerText || '').trim().split('\n')[0].trim();
+    const card =
+      cards.find((c) => first(c) === lbl) ||
+      cards.find((c) => (c.innerText || '').replace(/\s+/g, ' ').toLowerCase().includes(lbl.toLowerCase()));
     if (!card) return 'missing';
     if (card.classList.contains('selected')) return 'already';
     card.scrollIntoView({ block: 'center' });
@@ -1042,6 +1138,76 @@ async function selectCard(page, label) {
   return 'clicked';
 }
 
+/**
+ * AstroBin's wizard is unclickable in a tiny window: coordinate clicks below the
+ * viewport simply miss, which looks exactly like AstroBin refusing a control.
+ * Grow the OS window (CDP Browser domain); if that is refused, override the
+ * device metrics instead.
+ */
+/**
+ * Click a menu/list entry wherever AstroBin renders it: on narrow layouts the
+ * "Import" menu and picker lists become bottom sheets whose rows fall outside
+ * the viewport, so an in-page click is used and coordinates are only a probe.
+ */
+async function clickListItem(page, want) {
+  const hit = await page.evaluate((txt) => {
+    const norm = (s) => (s || '').replace(/\*+\s*$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const vis = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    };
+    const sel =
+      '.offcanvas-list-item, [role=menuitem], .dropdown-item, .dropdown-menu a, .dropdown-menu button, .menu li, button, a';
+    const cands = Array.from(document.querySelectorAll(sel)).filter(
+      (e) => vis(e) && norm(e.innerText) === norm(txt)
+    );
+    if (!cands.length) return null;
+    cands.sort((a, b) => {
+      const r1 = a.getBoundingClientRect(),
+        r2 = b.getBoundingClientRect();
+      return r1.width * r1.height - r2.width * r2.height;
+    });
+    const el = cands[0];
+    el.scrollIntoView({ block: 'center' });
+    const r = el.getBoundingClientRect();
+    el.click();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2, label: (el.innerText || '').replace(/\s+/g, ' ').slice(0, 40) };
+  }, want);
+  return !!hit;
+}
+
+async function ensureViewport(page, minW = 1000, minH = 700) {
+  const before = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  if (before.w >= minW && before.h >= minH) return before;
+  let resized = false;
+  try {
+    const cdp = await page.createCDPSession();
+    const { windowId } = await cdp.send('Browser.getWindowForTarget');
+    await cdp.send('Browser.setWindowBounds', {
+      windowId,
+      bounds: { left: 0, top: 0, width: 1440, height: 1020, windowState: 'normal' },
+    });
+    resized = true;
+    await sleep(1500);
+    await cdp.detach().catch(() => {});
+  } catch (e) {
+    console.warn(`window resize failed (${e.message}); overriding device metrics`);
+  }
+  let after = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  if (after.w < minW || after.h < minH) {
+    await page
+      .setViewport({ width: Math.max(1280, minW), height: Math.max(900, minH), deviceScaleFactor: 1 })
+      .catch(() => {});
+    await sleep(800);
+    after = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  }
+  console.log(`Viewport ${before.w}x${before.h} -> ${after.w}x${after.h} (window resize ${resized ? 'ok' : 'n/a'})`);
+  if (after.w < minW || after.h < minH) {
+    console.warn(`warning: viewport is still ${after.w}x${after.h}; wizard controls may sit off-screen`);
+  }
+  return after;
+}
+
 async function assertLoggedIn(page) {
   const text = await page.evaluate(() => document.body.innerText);
   if (/^\s*Log in\s*$/m.test(text) && !/Logout/.test(text)) {
@@ -1053,33 +1219,82 @@ async function assertLoggedIn(page) {
 }
 
 /** Click a wizard tab by its label and wait for its step host to be visible. */
+/// The wizard marks the current step with `li.active`; the `#image-stepper-*`
+/// host ids are not present on every layout, so the tab's own state is the
+/// reliable signal that a step switch actually happened.
+
 async function goToStep(page, label) {
-  const ok = await clickText(page, label);
-  if (!ok) {
-    // A failed match means the wizard is not where we think it is; report the
-    // page's real tab labels.
-    const tabs = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('li, a, button'))
-        .map((e) => (e.innerText || '').trim().replace(/\s+/g, ' '))
-        .filter((t) => t && t.length < 24)
-        .slice(0, 25)
-    );
-    throw new Error(`wizard step "${label}" not found (url=${page.url()}, tabs=[${tabs.join(' | ')}])`);
-  }
+  await clearOverlays(page);
   const id = STEP_IDS[label];
-  if (id) {
-    await page
-      .waitForFunction(
-        (sid) => {
-          const el = document.getElementById(sid);
-          return !!el && el.getBoundingClientRect().height > 0;
-        },
-        { timeout: 30000 },
-        id
-      )
-      .catch(() => {});
+  const stepState = () =>
+    page.evaluate((sid) => {
+      const host = document.getElementById(sid);
+      const active = document.querySelector('.nav-tabs .nav-item.active .nav-link');
+      const items = Array.from(document.querySelectorAll('.nav-tabs .nav-item')).map((li) => ({
+        t: (li.innerText || '').replace(/\*+\s*$/, '').replace(/\s+/g, ' ').trim(),
+        active: li.classList.contains('active'),
+        href: (li.querySelector('a') || {}).getAttribute && li.querySelector('a').getAttribute('href'),
+      }));
+      return {
+        hostVisible: !!host && host.getBoundingClientRect().height > 0,
+        activeTab: active ? (active.innerText || '').replace(/\*+\s*$/, '').trim() : null,
+        items,
+      };
+    }, id).catch(() => null);
+
+  const wanted = label.replace(/\*+\s*$/, '').trim().toLowerCase();
+
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const st = await stepState();
+    if (st && (st.hostVisible || (st.activeTab || '').toLowerCase() === wanted)) {
+      await sleep(500);
+      return;
+    }
+    const clicked = await page.evaluate((lbl) => {
+      const norm = (s) => (s || '').replace(/\*+\s*$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const strip = document.querySelector('.nav-tabs');
+      if (!strip) return null;
+      const links = Array.from(strip.querySelectorAll('.nav-item a')).filter(
+        (a) => norm(a.innerText) === norm(lbl)
+      );
+      if (!links.length) return null;
+      const a = links[0];
+      a.scrollIntoView({ block: 'center' });
+      a.click();
+      return a.getAttribute('href');
+    }, label);
+
+    if (!clicked && attempt === 1) {
+      const tabs = (st && st.items.map((i) => `${i.t}${i.active ? '(active)' : ''}`.trim())).filter(Boolean);
+      throw new Error(`wizard step "${label}" not found (url=${page.url()}, tabs=[${tabs.join(' | ')}])`);
+    }
+    await sleep(1500);
+
+    const after = await stepState();
+    if (after && (after.hostVisible || (after.activeTab || '').toLowerCase() === wanted)) return;
+
+    // Angular sometimes needs a real click on the anchor.
+    const box = await page.evaluate((lbl) => {
+      const norm = (s) => (s || '').replace(/\*+\s*$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const strip = document.querySelector('.nav-tabs');
+      if (!strip) return null;
+      const a = Array.from(strip.querySelectorAll('.nav-item a')).find((x) => norm(x.innerText) === norm(lbl));
+      if (!a) return null;
+      const r = a.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }, label).catch(() => null);
+    if (box) await page.mouse.click(box.x, box.y).catch(() => {});
+    await sleep(1800);
+
+    const final = await stepState();
+    if (final && (final.hostVisible || (final.activeTab || '').toLowerCase() === wanted)) return;
+    if (attempt === 4) {
+      const tabs = (final && final.items.map((i) => `${i.t}${i.active ? '(active)' : ''}`.trim())).filter(Boolean);
+      throw new Error(
+        `wizard step "${label}" never became active (url=${page.url()}, tabs=[${tabs.join(' | ')}], href=${clicked || 'none'})`
+      );
+    }
   }
-  await sleep(800);
 }
 
 /** Fill the Basic information description editor (Tiptap, CKEditor or textarea). */
@@ -1131,27 +1346,166 @@ async function fillDescription(page, text) {
  * uploads. Chips render with a remove control; click it for each match.
  */
 async function removeEquipmentChips(page, patterns) {
-  const removed = await page.evaluate((pats) => {
-    const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
-    const out = [];
-    for (const pat of pats) {
-      const hosts = Array.from(document.querySelectorAll('span, li, a, button')).filter(vis);
-      for (const el of hosts) {
-        const t = norm(el.innerText);
-        if (!t || t.length > 45 || !t.includes(pat)) continue;
-        let chip = el;
-        for (let d = 0; d < 6 && chip.parentElement; d++, chip = chip.parentElement) {
-          const closer = Array.from(chip.querySelectorAll('button, a, .tag-remove, .chip-remove, [class*=remove], [class*=close]')).find(vis);
-          if (closer) { closer.click(); out.push(t); break; }
+  // Removing a chip asks "Remove from recently used?"; leaving that dialog open
+  // blocks every later click, so confirm it after each removal.
+  const confirmRemoveDialog = async () => {
+    const clicked = await page.evaluate(() => {
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const dlgs = Array.from(document.querySelectorAll('.modal, [role=dialog], .cdk-overlay-pane'))
+        .filter(vis)
+        .filter((d) => /recently used|remove/i.test(d.innerText || ''));
+      if (!dlgs.length) return false;
+      for (const d of dlgs) {
+        const btn = Array.from(d.querySelectorAll('button, a')).filter(vis).find((b) =>
+          /^(remove|yes|confirm|ok)$/i.test((b.innerText || '').trim())
+        );
+        if (btn) {
+          btn.click();
+          return true;
         }
       }
+      return false;
+    });
+    if (clicked) await sleep(900);
+    return clicked;
+  };
+
+  const removed = [];
+  for (const pat of patterns) {
+    for (let guard = 0; guard < 20; guard++) {
+      const label = await page.evaluate((p) => {
+        const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const vis = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        const hosts = Array.from(document.querySelectorAll('span, li, a, button')).filter(vis);
+        for (const el of hosts) {
+          const t = norm(el.innerText);
+          if (!t || t.length > 45 || !t.includes(p)) continue;
+          let chip = el;
+          for (let d = 0; d < 6 && chip.parentElement; d++, chip = chip.parentElement) {
+            const closer = Array.from(
+              chip.querySelectorAll('button, a, .tag-remove, .chip-remove, [class*=remove], [class*=close]')
+            ).find(vis);
+            if (closer) {
+              closer.click();
+              return t;
+            }
+          }
+        }
+        return null;
+      }, pat);
+      if (!label) break;
+      removed.push(label);
+      await sleep(700);
+      // eslint-disable-next-line no-await-in-loop
+      await confirmRemoveDialog();
     }
-    return out;
-  }, patterns);
+  }
+  await confirmRemoveDialog();
   await sleep(1200);
   if (removed.length) console.log(`Removed prefilled equipment: ${removed.join('; ')}`);
   return removed;
+}
+
+/// Click the "Remove" button of a "Remove from recently used?" dialog if one is
+/// open. Such a dialog swallows every later click, so callers check for it
+/// before driving any other control.
+async function dismissRemoveDialog(page) {
+  return dismissConfirmDialogs(page, /recently used/i);
+}
+
+/**
+ * AstroBin leaves modal confirmations open across runs ("You are about to
+ * remove all acquisition sessions", "Remove from recently used"). A modal left
+ * up swallows every later click, so clear them before working a step.
+ */
+async function dismissConfirmDialogs(page, filter = /.*/) {
+  const clicked = await page.evaluate((src) => {
+    const re = new RegExp(src, 'i');
+    const vis = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    };
+    const dlgs = Array.from(document.querySelectorAll('.modal, [role=dialog], .cdk-overlay-pane'))
+      .filter(vis)
+      .filter((d) => re.test(d.innerText || ''));
+    for (const d of dlgs) {
+      const btn = Array.from(d.querySelectorAll('button, a'))
+        .filter(vis)
+        .find((b) => /^(remove|yes,? continue|yes|confirm|ok|continue)$/i.test((b.innerText || '').trim()));
+      if (btn) {
+        btn.click();
+        return (d.innerText || '').replace(/\s+/g, ' ').slice(0, 80);
+      }
+    }
+    return null;
+  }, filter.source);
+  if (clicked) {
+    await sleep(900);
+    console.log(`Dismissed a pending confirmation: ${clicked}`);
+  }
+  return !!clicked;
+}
+
+/**
+ * Close whatever modals are stacked on the wizard: confirmations get their
+ * affirmative button, informational/form modals get Cancel or the ×. Leftover
+ * overlays from an aborted run otherwise absorb every click in later steps.
+ */
+async function clearOverlays(page) {
+  for (let i = 0; i < 6; i++) {
+    const acted = await page.evaluate(() => {
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const modals = Array.from(document.querySelectorAll('.modal, [role=dialog], .cdk-overlay-pane')).filter(vis);
+      if (!modals.length) return null;
+      for (const m of modals) {
+        const txt = (m.innerText || '').replace(/\s+/g, ' ');
+        const btns = Array.from(m.querySelectorAll('button, a')).filter(vis);
+        const affirmative = /^(remove|yes,? continue|yes|confirm|ok|continue)$/i;
+        const cancel = /^(cancel|close|dismiss|not now|don.?t save|no)$/i;
+        // The wizard asks whether to save the equipment setup after an
+        // acquisition import. Never save from here: the run would create or
+        // rename a preset as a side effect.
+        // "Would you like to save this equipment configuration as a setup" is
+        // answered "No, just save the image" — a run must never create presets.
+        if (/save this equipment configuration as a setup|save .*configuration as a setup/i.test(txt)) {
+          const keep = btns.find((b) => /^no,?\s*just save the image$/i.test((b.innerText || '').trim()));
+          if (keep) {
+            keep.click();
+            return `setup prompt: ${txt.slice(0, 60)} -> ${keep.innerText.trim()}`;
+          }
+        }
+        if (/save .*setup|equipment setup|name this setup/i.test(txt)) {
+          const c = btns.find((b) => cancel.test((b.innerText || '').trim()));
+          if (c) {
+            c.click();
+            return `setup dialog: ${txt.slice(0, 60)} -> ${c.innerText.trim()}`;
+          }
+        }
+        let btn =
+          (affirmative.test((btns[0]?.innerText || '').trim()) && /are you sure|about to remove|recently used/i.test(txt)
+            ? btns.find((b) => affirmative.test((b.innerText || '').trim()))
+            : null) || btns.find((b) => cancel.test((b.innerText || '').trim()));
+        if (!btn) btn = m.querySelector('.close, .btn-close, [aria-label*="close" i]');
+        if (btn) {
+          btn.click();
+          return txt.slice(0, 80);
+        }
+      }
+      return null;
+    });
+    if (!acted) return;
+    console.log(`Cleared overlay: ${acted}`);
+    await sleep(900);
+  }
 }
 
 /** Wizard fields AstroBin prefills from the previously used setup. */
@@ -1256,108 +1610,492 @@ async function applySetup(page, setupName) {
 }
 
 /** Fill the CSV import modal and import the rows. */
-async function importAcquisitionCsv(page, csv) {
+/**
+ * Close every open "Import acquisition sessions from CSV" dialog. A failed
+ * attempt leaves one behind and a second attempt stacks another on top: the
+ * keystrokes then land in the hidden copy while the visible one stays empty
+ * and reports "This field is required", so the submit silently no-ops and the
+ * import produces zero rows.
+ */
+async function closeAllCsvModals(page) {
+  for (let t = 0; t < 8; t++) {
+    const open = await page.evaluate(() => {
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const modals = Array.from(document.querySelectorAll('.modal, [role=dialog]')).filter(
+        (m) => vis(m) && /Import acquisition sessions from CSV/i.test(m.innerText || '')
+      );
+      if (!modals.length) return 0;
+      const m = modals[modals.length - 1];
+      const btn =
+        Array.from(m.querySelectorAll('button')).find((b) => /^cancel$/i.test((b.innerText || '').trim())) ||
+        Array.from(m.querySelectorAll('button')).find((b) =>
+          /close/i.test((b.innerText || '') + ' ' + (b.className || ''))
+        );
+      if (btn) btn.click();
+      else {
+        const x = m.querySelector('.btn-close, .close, [aria-label*="close" i]');
+        if (x) x.click();
+      }
+      return modals.length;
+    });
+    if (!open) return;
+    await page.keyboard.press('Escape').catch(() => {});
+    await sleep(1200);
+  }
+}
+
+async function importAcquisitionCsv(page, csv, filterColumn) {
   await goToStep(page, 'Acquisition');
   await sleep(1200);
+  await closeAllCsvModals(page);
 
-  // The acquisition step has an "Import" button with a dropdown.
-  if ((await clickButtonText(page, 'Import')) || (await clickText(page, 'Import'))) {
-    await sleep(700);
-  } else {
-    // Fallback: kebab menu.
-    const kebab = await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('button')).find(
-        (b) =>
-          b.getBoundingClientRect().height > 0 &&
-          (/more options|ellipsis|kebab/i.test(b.title || '') || b.querySelector('.fa-ellipsis'))
-      );
-      if (!btn) return null;
-      btn.scrollIntoView({ block: 'center' });
-      const r = btn.getBoundingClientRect();
-      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  // AstroBin runs its own "Detecting acquisition data from your description"
+  // pass when the step opens; until it finishes the Import button is not
+  // rendered, so wait for it rather than failing out of the run.
+  await page
+    .waitForFunction(
+      () => {
+        const vis = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        // The step host is absent on some wizard layouts; fall back to the page.
+        const host = document.getElementById('image-stepper-acquisition') || document.body;
+        return Array.from(host.querySelectorAll('button, a')).some(
+          (e) => vis(e) && (e.innerText || '').replace(/\*+\s*$/, '').trim().toLowerCase() === 'import'
+        );
+      },
+      { timeout: 90000 }
+    )
+    .catch(() => {});
+
+  // The acquisition step has an "Import" button with a dropdown. AstroBin
+  // re-renders this step while it runs its own "detecting acquisition data"
+  // pass, and a single click attempt lands in that gap often enough to be
+  // worth looping over.
+  const clickInPage = (text) =>
+    page.evaluate((want) => {
+      const norm = (s) =>
+        (s || '').replace(/\*+\s*$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const hits = Array.from(document.querySelectorAll('button,a,[role=menuitem],li'))
+        .filter((e) => vis(e) && norm(e.innerText) === norm(want));
+      if (!hits.length) return false;
+      hits.sort((a, b) => {
+        const r1 = a.getBoundingClientRect(),
+          r2 = b.getBoundingClientRect();
+        return r1.width * r1.height - r2.width * r2.height;
+      });
+      hits[0].scrollIntoView({ block: 'center' });
+      hits[0].click();
+      return true;
+    }, text);
+
+  let modal = false;
+  for (let attempt = 1; attempt <= 4 && !modal; attempt++) {
+    // A pending confirmation (e.g. "Remove from recently used") blocks the step.
+    await dismissRemoveDialog(page);
+    // AstroBin renders "Import" as a Bootstrap dropdown toggle whose menu is a
+    // bottom sheet on narrow layouts. Clicking the wrong "Import" copy (there
+    // are zero-size template duplicates) leaves the sheet shut, so click and
+    // then verify that the sheet actually listed "From CSV".
+    const clickExact = (text) =>
+      page.evaluate((want) => {
+        const norm = (s) => (s || '').replace(/\*+\s*$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const vis = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        const sel = 'button, a, [role=menuitem], .dropdown-item, .offcanvas-list-item';
+        const cands = Array.from(document.querySelectorAll(sel)).filter(
+          (e) => vis(e) && norm(e.innerText) === norm(want)
+        );
+        if (!cands.length) return false;
+        cands.sort((a, b) => {
+          const r1 = a.getBoundingClientRect(),
+            r2 = b.getBoundingClientRect();
+          return r1.width * r1.height - r2.width * r2.height;
+        });
+        cands[0].scrollIntoView({ block: 'center' });
+        cands[0].click();
+        return true;
+      }, text);
+
+    let sheet = false;
+    for (let t = 0; t < 5 && !sheet; t++) {
+      if (t === 0) await clickButtonText(page, 'Import');
+      else if (t === 1) await clickText(page, 'Import');
+      else await clickExact('Import');
+      await sleep(1500);
+      sheet = await page.evaluate(() => {
+        const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const vis = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        return Array.from(document.querySelectorAll('.dropdown-item, [role=menuitem], .offcanvas-list-item, button, a')).some(
+          (e) => vis(e) && norm(e.innerText) === 'from csv'
+        );
+      });
+    }
+    if (!sheet) {
+      console.warn('  attempt: the Import menu never listed a visible "From CSV" entry');
+      await page.keyboard.press('Escape').catch(() => {});
+      await sleep(2500);
+      continue;
+    }
+
+    if (!(await clickExact('From CSV'))) {
+      console.warn('  attempt: "From CSV" was listed but not clickable');
+      await page.keyboard.press('Escape').catch(() => {});
+      await sleep(2500);
+      continue;
+    }
+    await sleep(1800);
+
+    // Existing sessions trigger a confirmation dialog before the CSV modal.
+    const asked = await page.evaluate(() =>
+      /about to remove all acquisition sessions|remove all affected/i.test(document.body.innerText)
+    );
+    if (asked) {
+      const ok = await page.evaluate(() => {
+        const btn = Array.from(
+          document.querySelectorAll('.modal button, .modal .btn, [role=dialog] button, .cdk-overlay-pane button')
+        )
+          .filter((b) => b.getBoundingClientRect().height > 0)
+          .find((b) => /^(ok|confirm|yes|continue|yes,? continue|remove all affected|remove)$/i.test((b.innerText || '').trim()));
+        if (!btn) return false;
+        btn.click();
+        return true;
+      });
+      if (!ok) {
+        const labels = await page.evaluate(() =>
+          Array.from(
+            document.querySelectorAll('.modal button, [role=dialog] button, .cdk-overlay-pane button')
+          )
+            .filter((b) => b.getBoundingClientRect().height > 0)
+            .map((b) => (b.innerText || '').trim())
+            .filter(Boolean)
+        );
+        throw new Error(`replacement confirmation dialog has no OK button (buttons: ${labels.join(' | ')})`);
+      }
+      await sleep(1200);
+    }
+
+    modal = await page
+      .waitForFunction(() => /Import acquisition sessions from CSV/i.test(document.body.innerText), {
+        timeout: 25000,
+      })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!modal) {
+      console.log(`CSV modal not open (attempt ${attempt}/4), retrying the Import menu...`);
+      await page.keyboard.press('Escape').catch(() => {});
+      await sleep(5000);
+    }
+  }
+  if (!modal) {
+    const state = await page.evaluate(() => {
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      return {
+        buttons: Array.from(document.querySelectorAll('button,a'))
+          .filter(vis)
+          .map((b) => (b.innerText || '').replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .slice(0, 40),
+        detecting: /detecting acquisition data/i.test(document.body.innerText),
+      };
     });
-    if (!kebab) throw new Error('acquisition Import menu not found');
-    await page.mouse.click(kebab.x, kebab.y);
-    await sleep(700);
+    throw new Error(
+      `acquisition CSV modal never opened (detecting=${state.detecting}; controls: ${state.buttons.join(' | ')})`
+    );
   }
 
-  if (!(await clickButtonText(page, 'From CSV')) && !(await clickText(page, 'From CSV'))) {
-    throw new Error('"From CSV" menu item not found');
+  // The modal's textarea is a formly control: it only registers real keyboard
+  // input, stays "required"/invalid after programmatic writes, and its Import
+  // button silently no-ops while the control is invalid. The sequence that
+  // works is focus → select-all + delete (real keys) → type → Enter (submit).
+  const taInfo = await page.evaluate(() => {
+    const modal = Array.from(document.querySelectorAll('.modal')).find(
+      (m) => /Import acquisition sessions from CSV/i.test(m.innerText) && m.getBoundingClientRect().height > 0
+    );
+    if (!modal) return null;
+    const stacked = Array.from(document.querySelectorAll('.modal')).filter(
+      (m) => m.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(m.innerText)
+    ).length;
+    if (stacked > 1) console.warn(`warning: ${stacked} CSV dialogs are open at once`);
+    const ta = Array.from(modal.querySelectorAll('textarea')).find(
+      (t) => t.getBoundingClientRect().height > 0
+    );
+    if (!ta) return null;
+    ta.scrollIntoView({ block: 'center' });
+    return { id: ta.id || '', existing: ta.value.length };
+  });
+  if (!taInfo) throw new Error('CSV textarea not found');
+  if (taInfo.id) {
+    await page.focus('#' + taInfo.id);
   }
-  await sleep(1200);
+  const active = await page.evaluate(() => document.activeElement && document.activeElement.tagName);
+  if (active !== 'TEXTAREA') {
+    throw new Error(`CSV textarea did not take focus (activeElement=${active})`);
+  }
+  console.log(`CSV (${csv.length} chars, ${csv.split('\n').length} lines):\n${csv}`);
+  if (taInfo.existing) {
+    // Leftover text from an earlier attempt makes the CSV invalid.
+    await page.keyboard.down('Control');
+    await page.keyboard.press('KeyA');
+    await page.keyboard.up('Control');
+    await page.keyboard.press('Delete');
+    await sleep(400);
+  }
+  await page.keyboard.type(csv, { delay: 12 });
+  await sleep(800);
 
-  // Existing sessions trigger a confirmation dialog before the CSV modal.
-  const asked = await page.evaluate(() => /about to remove all acquisition sessions/i.test(document.body.innerText));
-  if (asked) {
-    const ok = await page.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('.modal button, .modal .btn')).find((b) =>
-        /^(ok|confirm|yes|continue)$/i.test((b.innerText || '').trim())
+  // The modal component can be re-created between the focus and the typing
+  // (AstroBin re-renders the acquisition step while it "detects acquisition
+  // data" from the description). The text then sits in a DOM node Angular never
+  // bound: the control stays pristine/invalid and the submit no-ops. Detect that
+  // and write the value through the native setter, which Angular does observe.
+  for (let t = 0; t < 4; t++) {
+    const bound = await page.evaluate(() => {
+      const m = Array.from(document.querySelectorAll('.modal')).find(
+        (x) => x.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(x.innerText)
+      );
+      if (!m) return false;
+      const ta = Array.from(m.querySelectorAll('textarea')).find((x) => x.getBoundingClientRect().height > 0);
+      return !!ta && ta.classList.contains('ng-dirty') && ta.value.length > 0;
+    });
+    if (bound) break;
+    if (t === 3) break;
+    console.warn('  CSV text is not bound to the form control, re-binding...');
+    const wrote = await page.evaluate((data) => {
+      const m = Array.from(document.querySelectorAll('.modal')).find(
+        (x) => x.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(x.innerText)
+      );
+      if (!m) return false;
+      const ta = Array.from(m.querySelectorAll('textarea')).find((x) => x.getBoundingClientRect().height > 0);
+      if (!ta) return false;
+      ta.scrollIntoView({ block: 'center' });
+      ta.focus();
+      const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+      set.call(ta, '');
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      set.call(ta, data);
+      ta.dispatchEvent(new InputEvent('input', { bubbles: true, data, inputType: 'insertText' }));
+      ta.dispatchEvent(new Event('change', { bubbles: true }));
+      ta.dispatchEvent(new Event('blur', { bubbles: true }));
+      return true;
+    }, csv);
+    if (!wrote) break;
+    await sleep(2000);
+  }
+
+  const accepted = await page
+    .waitForFunction(() => {
+      const modal = Array.from(document.querySelectorAll('.modal')).find(
+        (m) => m.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(m.innerText)
+      );
+      if (!modal) return true; // already closed
+      return !/this field is required|not a valid comma/i.test(modal.innerText);
+    }, { timeout: 30000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!accepted) {
+    const hint = await page.evaluate(() => {
+      const modal = Array.from(document.querySelectorAll('.modal')).find((m) => m.getBoundingClientRect().height > 0);
+      return modal ? (modal.innerText || '').replace(/\s+/g, ' ').slice(0, 200) : '';
+    });
+    throw new Error(`CSV rejected by the modal validator: ${hint}`);
+  }
+
+  const readModal = () =>
+    page.evaluate(() => {
+    const m = Array.from(document.querySelectorAll('.modal')).find(
+      (x) => x.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(x.innerText)
+    );
+    if (!m) return null;
+    const ta = Array.from(m.querySelectorAll('textarea')).find((t) => t.getBoundingClientRect().height > 0);
+    const btn = Array.from(m.querySelectorAll('button')).find((b) => (b.innerText || '').trim() === 'Import');
+    return {
+      taLen: ta ? ta.value.length : -1,
+      taCls: ta ? ta.className.replace(/ng-[\w-]+/g, '').trim() : '',
+      taInvalid: ta ? ta.classList.contains('ng-invalid') : null,
+      taDirty: ta ? ta.classList.contains('ng-dirty') : null,
+      btnDisabled: btn ? btn.disabled : null,
+      text: (m.innerText || '').replace(/\s+/g, ' ').slice(0, 300),
+    };
+    });
+  // AstroBin validates the pasted CSV asynchronously: right after typing the
+  // control is still flagged invalid, and submitting in that window no-ops.
+  // Wait for the flag to clear (or for a real error message to appear).
+  let modalState = null;
+  for (let t = 0; t < 20; t++) {
+    modalState = await readModal();
+    if (!modalState) break;
+    const err = /this field is required|not a valid comma/i.test(modalState.text);
+    if (!modalState.taInvalid && !err) break;
+    if (err) break;
+    await sleep(1500);
+  }
+  console.log('Modal before Enter: ' + JSON.stringify(modalState));
+  if (!modalState || modalState.taLen < csv.length - 2) {
+    throw new Error(
+      `CSV did not reach the visible modal (typed ${csv.length} chars, modal holds ${modalState ? modalState.taLen : 0})`
+    );
+  }
+  if (modalState.taInvalid) {
+    throw new Error(`CSV modal still invalid before submit: ${modalState.text}`);
+  }
+  // Submit with a real click on the dialog's Import button. Enter inside the
+  // textarea is not a form submit (it inserts a newline), and a coordinate click
+  // without scrolling can land outside the viewport, which looked exactly like
+  // AstroBin ignoring a valid CSV for minutes.
+  const csvModalGone = () =>
+    page
+      .waitForFunction(
+        () =>
+          !Array.from(document.querySelectorAll('.modal')).find(
+            (m) => m.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(m.innerText)
+          ),
+        { timeout: 45000 }
+      )
+      .then(() => true)
+      .catch(() => false);
+
+  const btnPos = await page.evaluate(() => {
+    const modal = Array.from(document.querySelectorAll('.modal')).find(
+      (m) => m.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(m.innerText)
+    );
+    if (!modal) return null;
+    const btn = Array.from(modal.querySelectorAll('button')).find((b) => (b.innerText || '').trim() === 'Import');
+    if (!btn) return null;
+    btn.scrollIntoView({ block: 'center' });
+    const r = btn.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2, disabled: btn.disabled, offscreen: r.bottom > innerHeight || r.top < 0 };
+  });
+  if (!btnPos) {
+    // The dialog closed on its own between the state read and now.
+    if (await csvModalGone()) return;
+    throw new Error('CSV modal has no Import button');
+  }
+  if (btnPos.disabled) throw new Error('CSV Import button is disabled with a valid, bound CSV');
+  if (btnPos.offscreen) {
+    console.warn(`warning: Import button is outside the viewport (y=${Math.round(btnPos.y)}); scrolling it into view again`);
+  }
+  await page.mouse.click(btnPos.x, btnPos.y);
+  let closed = await csvModalGone();
+  if (!closed) {
+    console.warn('  click on Import did not close the dialog; trying Enter, then an in-page click');
+    await page.keyboard.press('Enter');
+    closed = await csvModalGone();
+  }
+  if (!closed) {
+    await page.evaluate(() => {
+      const modal = Array.from(document.querySelectorAll('.modal')).find(
+        (m) => m.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(m.innerText)
+      );
+      if (!modal) return;
+      const btn = Array.from(modal.querySelectorAll('button')).find((b) => (b.innerText || '').trim() === 'Import');
+      if (btn) btn.click();
+    });
+    closed = await csvModalGone();
+  }
+  if (!closed) {
+    const detail = await page.evaluate(() => {
+      const m = Array.from(document.querySelectorAll('.modal')).find(
+        (x) => x.getBoundingClientRect().height > 0
+      );
+      const ta = m ? m.querySelector('textarea') : null;
+      return {
+        text: m ? (m.innerText || '').replace(/\s+/g, ' ').slice(0, 200) : '',
+        cls: ta ? ta.className : '',
+        len: ta ? ta.value.length : -1,
+      };
+    });
+    throw new Error(`CSV submit did not take effect: ${JSON.stringify(detail)}`);
+  }
+
+  // With existing sessions, Enter opens a confirmation sheet before the table
+  // is replaced; answer it before judging whether the import worked.
+  for (let t = 0; t < 6; t++) {
+    const confirmed = await page.evaluate(() => {
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const o = Array.from(document.querySelectorAll('.modal, [role=dialog], .cdk-overlay-pane')).find(
+        (e) =>
+          vis(e) &&
+          /about to remove all acquisition sessions|remove all affected|are you sure/i.test(e.innerText || '')
+      );
+      if (!o) return false;
+      const btn = Array.from(o.querySelectorAll('button')).find((b) =>
+        /^(yes,? continue|yes|confirm|ok|continue|remove all affected|remove)$/i.test((b.innerText || '').trim())
       );
       if (!btn) return false;
       btn.click();
       return true;
     });
-    if (!ok) throw new Error('replacement confirmation dialog has no OK button');
-    await sleep(1000);
+    if (!confirmed) break;
+    await sleep(2500);
   }
 
-  await page.waitForFunction(() => /Import acquisition sessions from CSV/i.test(document.body.innerText), {
-    timeout: 30000,
+  // The modal closing is not proof of success: AstroBin can reject every row
+  // ("invalid values will be ignored") and still close. Demand rows.
+  const rowsSeen = await page
+    .waitForFunction(
+      () =>
+        document.querySelectorAll('.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row, .collapsible-row, .datatable-body-row')
+          .length > 0,
+      { timeout: 60000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  if (!rowsSeen) throw new Error('CSV accepted but no acquisition rows rendered');
+  // Close any leftover modal so later clicks are not swallowed by the overlay.
+  await page.evaluate(() => {
+    const m = Array.from(document.querySelectorAll('.modal')).find(
+      (x) => x.getBoundingClientRect().height > 0 && /Import acquisition sessions from CSV/i.test(x.innerText)
+    );
+    if (!m) return;
+    const btn =
+      Array.from(m.querySelectorAll('button')).find((b) => (b.innerText || '').trim() === 'Cancel') ||
+      m.querySelector('.close, [aria-label*=close i], .btn-close');
+    if (btn) btn.click();
   });
-
-  const filled = await page.evaluate((text) => {
-    const modal = Array.from(document.querySelectorAll('.modal')).find(
-      (m) => /Import acquisition sessions from CSV/i.test(m.innerText) && m.getBoundingClientRect().height > 0
-    );
-    if (!modal) return false;
-    const ta = modal.querySelector('textarea');
-    if (!ta) return false;
-    ta.focus();
-    ta.value = text;
-    ta.dispatchEvent(new Event('input', { bubbles: true }));
-    ta.dispatchEvent(new Event('change', { bubbles: true }));
-    ta.blur();
-    return true;
-  }, csv);
-  if (!filled) throw new Error('CSV textarea not found');
-  await sleep(900);
-
-  const clicked = await page.evaluate(() => {
-    const modal = Array.from(document.querySelectorAll('.modal')).find(
-      (m) => /Import acquisition sessions from CSV/i.test(m.innerText) && m.getBoundingClientRect().height > 0
-    );
-    if (!modal) return false;
-    const btn = Array.from(modal.querySelectorAll('button')).find(
-      (b) => (b.innerText || '').trim() === 'Import' && !b.disabled
-    );
-    if (!btn) return false;
-    btn.click();
-    return true;
-  });
-  if (!clicked) throw new Error('CSV Import button not clickable (validation failed?)');
-
-  await page
-    .waitForFunction(() => !/Import acquisition sessions from CSV/i.test(document.body.innerText), {
-      timeout: 60000,
-    })
-    .catch(() => {});
-  await sleep(1500);
+  await sleep(1200);
   console.log('Acquisition CSV imported.');
 }
 
 /** After import, set each row's filter from the image's equipment filters. */
-async function applyAcquisitionFilters(page, rows) {
-  const wanted = rows.filter((r) => r.filter).length;
+async function applyAcquisitionFilters(page, rows, skip = new Set()) {
+  const wanted = rows.filter((r) => r.filter && !skip.has(r.filter)).length;
+  // The import can leave dialogs open (save-setup prompt, confirmation), and
+  // those swallow every later click.
+  await clearOverlays(page);
   if (!wanted) return;
 
   await page
     .waitForFunction(
-      () => document.querySelectorAll('.acquisition-table .datatable-body-row').length > 0,
+      () =>
+        document.querySelectorAll('.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row')
+          .length > 0,
       { timeout: 30000 }
     )
     .catch(() => {});
   const rowCount = await page.evaluate(
-    () => document.querySelectorAll('.acquisition-table .datatable-body-row').length
+    () =>
+      document.querySelectorAll('.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row').length
   );
   if (rowCount < rows.length) {
     console.warn(`warning: ${rows.length} CSV row(s) but ${rowCount} acquisition row(s) rendered`);
@@ -1373,13 +2111,40 @@ async function applyAcquisitionFilters(page, rows) {
     );
   }
 
+  let missed = 0;
+  let fromCsv = 0;
   for (let i = 0; i < Math.min(rowCount, rows.length); i++) {
     const letter = rows[i].filter;
-    if (!letter) continue;
-    const ok = await selectFilterInRow(page, i, letter);
-    if (!ok) {
-      console.warn(`warning: could not set filter ${FILTER_LABELS[letter] || letter} on acquisition row ${i + 1}`);
+    if (!letter || skip.has(letter)) continue;
+    // The CSV may already have carried the filter (a `filter2` column). Row
+    // summaries read "Nov 8, 2026/Baader Blue (B-CCD)/28x300s", so three
+    // segments means the filter landed and the row needs no editing.
+    const summary = await page.evaluate((idx) => {
+      const r = document.querySelectorAll(
+        '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+      )[idx];
+      if (!r) return '';
+      const sec = r.querySelector('.collapsed-row-text') || r;
+      return (sec.innerText || '').replace(/\s+/g, ' ').trim();
+    }, i);
+    if (summary.split('/').length >= 3) {
+      fromCsv++;
+      console.log(`  row ${i + 1} filter from CSV: ${summary}`);
+      continue;
     }
+    const ok = await selectFilterInRow(page, i, letter);
+    if (!ok) missed++;
+  }
+  if (fromCsv) console.log(`  ${fromCsv} row(s) took their filter straight from the CSV`);
+  if (missed) {
+    const summary = await page.evaluate(() => {
+      const host = document.getElementById('image-stepper-acquisition') || document.body;
+      const m = (host.innerText || '').match(/Summary[\s\S]{0,200}/);
+      return m ? m[0].replace(/\s+/g, ' ').slice(0, 200) : '';
+    });
+    throw new Error(
+      `${missed} acquisition row(s) kept no filter — aborting rather than saving a session with a blank filter column. Summary: ${summary}`
+    );
   }
 }
 
@@ -1419,79 +2184,176 @@ async function dropdownOptions(page) {
   });
 }
 
-async function selectFilterInRow(page, index, letter) {
-  const box = await page.evaluate((idx) => {
-    const rows = document.querySelectorAll('.acquisition-table .datatable-body-row');
+// Assign row `index`'s filter. The upload wizard renders sessions as
+// collapsible rows (the edit wizard renders a columned table), so expand the
+// row first and then drive the ng-select inside it. ng-select virtual-scrolls
+// its option list, so type AstroBin's own name for the filter before scanning.
+// Assign row `index`'s filter. Sessions render as collapsible rows: the row
+// must be opened (click the summary, wait for the "expanded" class) before its
+// formly fields exist, and the Filter field is an ng-select whose option list
+// is virtual-scrolled, so type AstroBin's own filter name before scanning.
+/**
+ * Assign row `index`'s filter. Sessions render as collapsible rows: the row must
+ * be opened (click the summary, wait for the "expanded" class) before its Formly
+ * fields exist, and the Filter field is an ng-select whose option list is
+ * virtual-scrolled, so type AstroBin's own filter name before scanning.
+ *
+ * A row carries several ng-selects (Filter, Bortle, …) and their field wrappers
+ * overlap, so "the first select near the word filter" can be the Bortle one —
+ * which silently imports values like "4 — Rural/suburban transition". Each
+ * candidate is therefore opened and judged by its own option list.
+ */
+const NON_FILTER_LABEL = /bortle|color zone|frames|duration|binned|camera|telescope|mount|darks|flats|bias/i;
+const BORTLE_OPTION = /\d(\.\d)? — .* sky|Color zone|dark-site sky/i;
+
+async function rowFilterCandidates(page, index) {
+  return page.evaluate((idx) => {
+    const rows = document.querySelectorAll(
+      '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+    );
     const row = rows[idx];
-    if (!row) return null;
-    const cell = row.querySelector('.acquisition-col--filter') || row;
-    const ng = cell.querySelector('ng-select, .ng-select');
-    if (!ng) return null;
-    ng.scrollIntoView({ block: 'center' });
-    const r = ng.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  }, index);
-  if (!box) return false;
-
-  const re = FILTER_MATCHERS[letter];
-  if (!re) return false;
-
-  await page.mouse.click(box.x, box.y);
-  await sleep(500);
-
-  // Pass 1: the option may already be rendered (short filter lists).
-  let opts = await dropdownOptions(page);
-  let hit = opts.find((o) => re.test(o.label));
-
-  // Pass 2: type AstroBin's name for this filter so the list is narrowed and
-  // virtual scrolling cannot hide the one we want.
-  if (!hit) {
-    const term = FILTER_SEARCH_TERMS[letter];
-    const typed = await page.evaluate((t) => {
-      const inp = Array.from(document.querySelectorAll('ng-select input, .ng-select input')).find(
-        (i) => i.getBoundingClientRect().width > 0
-      );
-      if (!inp) return false;
-      inp.focus();
-      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-      set.call(inp, t);
-      inp.dispatchEvent(new Event('input', { bubbles: true }));
-      return true;
-    }, term);
-    if (typed) {
-      await sleep(700);
-      opts = await dropdownOptions(page);
-      hit = opts.find((o) => re.test(o.label));
-      // The typed term itself is a decent fallback when the catalogue label is
-      // unusual but ng-select matched it.
-      if (!hit) hit = opts.find((o) => new RegExp(term.replace(/[^a-z0-9]/gi, ''), 'i').test(o.label));
+    if (!row) return { err: 'no such row' };
+    row.scrollIntoView({ block: 'center' });
+    const nonFilter = /bortle|color zone|frames|duration|binned|camera|telescope|mount|darks|flats|bias/i;
+    const out = [];
+    for (const sel of Array.from(row.querySelectorAll('ng-select, .ng-select'))) {
+      // Walk outwards until a wrapper holds exactly one short label for this
+      // control; that label is what the field actually is.
+      let label = '';
+      let el = sel;
+      for (let k = 0; k < 6 && el; k++) {
+        const grp = el.closest('.form-group, .formly-field, .field-wrapper, .row, label');
+        if (!grp) break;
+        const lab = Array.from(grp.querySelectorAll(':scope > label, label')).map((l) =>
+          (l.innerText || '').replace(/\s+/g, ' ').trim()
+        )[0];
+        if (lab) {
+          label = lab;
+          break;
+        }
+        el = grp.parentElement;
+      }
+      sel.scrollIntoView({ block: 'center' });
+      const r = sel.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      out.push({
+        label,
+        x: r.x + r.width / 2,
+        y: r.y + r.height / 2,
+        focused: !!(sel.querySelector('input') && document.activeElement === sel.querySelector('input')),
+        looksLikeFilter: /^filter/i.test(label) || (!label && !nonFilter.test((sel.closest('.form-group')?.innerText || ''))),
+      });
     }
-  }
+    out.sort((a, b) => (b.looksLikeFilter ? 1 : 0) - (a.looksLikeFilter ? 1 : 0));
+    return { candidates: out };
+  }, index);
+}
 
-  if (!hit) {
-    await page.keyboard.press('Escape').catch(() => {});
-    if (opts.length) console.warn(`  filters offered: ${opts.map((o) => o.label).join(' | ')}`);
+async function selectFilterInRow(page, index, letter) {
+  const re = FILTER_MATCHERS[letter];
+  const term = FILTER_SEARCH_TERMS[letter];
+  if (!re || !term) return false;
+
+  const opened = await page.evaluate(async (idx) => {
+    const rows = document.querySelectorAll(
+      '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+    );
+    const row = rows[idx];
+    if (!row) return { err: 'no such row' };
+    row.scrollIntoView({ block: 'center' });
+    if (!/expanded/.test(row.className)) {
+      (row.querySelector('.collapsed-row-summary') || row).click();
+      for (let t = 0; t < 10 && !/expanded/.test(row.className); t++) {
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      await new Promise((r) => setTimeout(r, 600));
+    }
+    return { expanded: true, selects: row.querySelectorAll('ng-select, .ng-select').length };
+  }, index);
+  if (opened.err) {
+    console.warn(`  row ${index + 1}: ${opened.err}`);
     return false;
   }
-  await page.mouse.click(hit.x, hit.y);
-  await sleep(400);
-  console.log(`  row ${index + 1} filter -> ${hit.label}`);
-  return true;
+
+  const found = await rowFilterCandidates(page, index);
+  const cands = found.candidates || [];
+  if (!cands.length) {
+    console.warn(`  row ${index + 1}: no dropdown in the expanded row (${found.err || 'none rendered'})`);
+    return false;
+  }
+
+  for (const cand of cands) {
+    await page.mouse.click(cand.x, cand.y);
+    await sleep(800);
+
+    let opts = await dropdownOptions(page);
+    let hit = opts.find((o) => re.test(o.label));
+    if (!hit) {
+      if (!cand.focused) {
+        await page.evaluate(
+          (pos) => {
+            const sel = document.elementFromPoint(pos.x, pos.y);
+            const root = sel && sel.closest ? sel.closest('ng-select, .ng-select') : null;
+            const inp = root ? root.querySelector('input') : null;
+            if (inp) inp.focus();
+          },
+          cand
+        );
+      }
+      await page.keyboard.type(term, { delay: 45 });
+      await sleep(1100);
+      opts = await dropdownOptions(page);
+      hit = opts.find((o) => re.test(o.label));
+      if (!hit && opts.length === 1 && !BORTLE_OPTION.test(opts[0].label)) hit = opts[0];
+    }
+
+    if (hit) {
+      await page.mouse.click(hit.x, hit.y);
+      await sleep(800);
+      const summary = await page.evaluate((idx) => {
+        const rows = document.querySelectorAll(
+          '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+        );
+        const row = rows[idx];
+        if (!row) return '';
+        const sec = row.querySelector('.collapsed-row-text') || row;
+        return (sec.innerText || '').replace(/\s+/g, ' ').trim();
+      }, index);
+      console.log(`  row ${index + 1} filter -> ${hit.label} [${summary}]`);
+      return summary.split('/').length >= 3;
+    }
+
+    await page.keyboard.press('Escape').catch(() => {});
+    await sleep(500);
+    const wrong = opts.some((o) => BORTLE_OPTION.test(o.label));
+    console.warn(
+      `  row ${index + 1}: select "${cand.label || '(unlabelled)'}" offered ${
+        wrong ? 'Bortle-scale options (wrong field)' : `${opts.length} option(s)`
+      } with no match for ${letter}; trying the next select`
+    );
+  }
+  return false;
 }
 
 /// Read the rendered acquisition table back so a positional filter slip (rows
 /// sharing a date) is visible in the log instead of silent.
 async function reportAcquisitionRows(page) {
+  // AstroBin lists imported sessions as collapsible rows grouped by date, each
+  // summarised as "Nov 8, 2026/B/15×300s". That summary carries the filter, so
+  // it is the cheapest way to confirm what actually landed.
   const rows = await page.evaluate(() =>
-    Array.from(document.querySelectorAll('.acquisition-table .datatable-body-row')).map((r) =>
-      Array.from(r.querySelectorAll('td, .datatable-body-cell'))
-        .map((c) => (c.innerText || '').replace(/\s+/g, ' ').trim())
-        .filter(Boolean)
+    Array.from(
+      document.querySelectorAll('.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row')
     )
+      .map((r) => (r.innerText || '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
   );
-  if (!rows.length) return;
-  console.log('\nAcquisition rows as AstroBin shows them:');
-  rows.forEach((cells, i) => console.log(`  #${String(i + 1).padStart(2)}  ${cells.join(' | ')}`));
+  if (!rows.length) {
+    console.log('\nAcquisition rows: none found in the table after import');
+    return;
+  }
+  console.log(`\nAcquisition rows as AstroBin shows them (${rows.length}):`);
+  rows.forEach((t, i) => console.log(`  #${String(i + 1).padStart(2)}  ${t.slice(0, 130)}`));
 }
 
 // --- Upload flow -------------------------------------------------------------
@@ -1565,13 +2427,84 @@ async function fillRequiredContent(page, opts) {
   const pair = SOURCE_LABELS[opts.source];
   if (!pair) throw new Error(`unknown --source "${opts.source}"`);
   console.log(`Source card: ${pair[0]} → ${pair[1]}`);
-  // Clicking the card opens a drawer with the location type; an already
-  // selected card needs no drawer (and none would be open).
-  const cardState = await selectCard(page, pair[0]);
-  if (cardState !== 'already') {
+  // The source needs two clicks: the card, then the location type in a drawer.
+  // Either can miss without leaving a visible mark, so verify the selection and
+  // retry — an unselected source blocks every later wizard step.
+  const sourceSelected = () =>
+    page.evaluate(
+      (wanted) =>
+        Array.from(document.querySelectorAll('.icon-picker-card.selected'))
+          .map((e) => (e.innerText || '').replace(/\s+/g, ' ').toLowerCase())
+          .some((t) => wanted.some((w) => t.includes(w.toLowerCase()))),
+      [pair[0], pair[1]]
+    );
+
+  let srcOk = await sourceSelected();
+  for (let attempt = 1; attempt <= 4 && !srcOk; attempt++) {
+    if (attempt > 1) {
+      // A stale drawer can cover the card grid.
+      await page.keyboard.press('Escape').catch(() => {});
+      await sleep(800);
+    }
+    await selectCard(page, pair[0]);
+    await sleep(1300);
+    const opt = await page.evaluate((want) => {
+      const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const cands = Array.from(
+        document.querySelectorAll('.offcanvas *, .drawer *, .modal *, [role=dialog] *, .icon-picker-drawer *, .icon-picker-card')
+      ).filter((e) => vis(e) && norm(e.innerText).startsWith(norm(want)) && e.innerText.length < 200);
+      if (!cands.length) return null;
+      cands.sort((a, b) => {
+        const r1 = a.getBoundingClientRect(),
+          r2 = b.getBoundingClientRect();
+        return r1.width * r1.height - r2.width * r2.height;
+      });
+      cands[0].scrollIntoView({ block: 'center' });
+      const r = cands[0].getBoundingClientRect();
+      // AstroBin slides this picker in from the bottom of the window, so in a
+      // small window the option sits outside the viewport and a coordinate
+      // click misses it entirely (it looks like AstroBin ignoring the choice).
+      // Click it in-page; coordinates are only a fallback.
+      cands[0].click();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, label: (cands[0].innerText || '').replace(/\s+/g, ' ').slice(0, 40) };
+    }, pair[1]);
+    if (opt) {
+      await sleep(1400);
+      if (!(await sourceSelected())) {
+        await page.mouse.click(opt.x, opt.y);
+        await sleep(1400);
+      }
+    } else if (!(await clickText(page, pair[1]))) {
+      const drawer = await page.evaluate(() => {
+        const vis = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        return Array.from(document.querySelectorAll('.offcanvas, .drawer, .modal, [role=dialog], .icon-picker-drawer'))
+          .filter(vis)
+          .map((d) => (d.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200))
+          .join(' || ');
+      });
+      console.warn(`  attempt ${attempt}: no "${pair[1]}" control in the drawer (${drawer || 'none open'})`);
+      continue;
+    }
     await sleep(1200);
-    if (!(await clickText(page, pair[1]))) throw new Error(`location option "${pair[1]}" not found`);
-    await sleep(1200);
+    srcOk = await sourceSelected();
+    if (!srcOk) console.warn(`  attempt ${attempt}: source still not selected`);
+  }
+  if (!srcOk) {
+    const selected = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('.icon-picker-card.selected'))
+        .map((e) => (e.innerText || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+    );
+    throw new Error(
+      `content source "${pair[0]} → ${pair[1]}" never became selected (selected cards: ${selected.join(' | ') || 'none'})`
+    );
   }
 
   const state = await page.evaluate(() => ({
@@ -1588,7 +2521,31 @@ async function fillRequiredContent(page, opts) {
 
 async function saveDraft(page) {
   if (!(await clickVisible(page, '#save-button'))) throw new Error('Save button not clickable');
-  await page.waitForFunction(() => /\/i\/[A-Za-z0-9]+\/?$/.test(location.pathname), { timeout: 120000 });
+  // After saving a draft whose equipment came from the wizard rather than a
+  // saved preset, AstroBin asks whether to keep it as a setup. Answer "No, just
+  // save the image": saving a preset here would clutter the account (and the
+  // last-used list the wizard prefills from). The click happens inside the wait
+  // so it races nothing.
+  await page.waitForFunction(
+    () => {
+      const vis = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
+      const dlg = Array.from(document.querySelectorAll('.modal, [role=dialog], .cdk-overlay-pane')).find(
+        (m) => vis(m) && /save this equipment configuration as a setup/i.test(m.innerText || '')
+      );
+      if (dlg) {
+        const btn = Array.from(dlg.querySelectorAll('button, a')).find((b) =>
+          vis(b) && /^no,?\s*just save the image$/i.test((b.innerText || '').trim())
+        );
+        if (btn) btn.click();
+        return false;
+      }
+      return /\/i\/[A-Za-z0-9]+\/?$/.test(location.pathname);
+    },
+    { timeout: 120000, polling: 500 }
+  );
   await sleep(2500);
 
   const info = await page.evaluate(() => ({
@@ -1641,8 +2598,8 @@ async function saveDraft(page) {
   const { ctx, setup, rows } = opts.doAcquisition || opts.doSetup
     ? scanInventory(opts)
     : { ctx: null, setup: null, rows: [] };
-  describeAcquisition(ctx, setup, rows);
-  const csv = rows.length ? acquisitionCsv(rows) : '';
+  describeAcquisition(ctx, setup, rows, opts);
+  const csv = rows.length ? acquisitionCsv(rows, opts.csvFilterColumn) : '';
 
   // Auto-description: fetch from web if requested and no explicit description
   if (opts.autoDescription && !opts.description && (ctx?.object || opts.title)) {
@@ -1666,7 +2623,10 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
       for (const u of sourceUrls) console.log(`  ${u}`);
     }
     if (setup) console.log(`\nWould apply setup: ${setup}`);
-    if (csv) console.log(`\nAcquisition CSV (${rows.length} row(s)):\n${csv}`);
+    if (csv)
+      console.log(
+        `\nAcquisition CSV (${rows.length} row(s)):\n${csv}(a filter id in the CSV is silently dropped if it is not in this account's equipment database)`
+      );
     return;
   }
 
@@ -1690,6 +2650,7 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
     const pages = await browser.pages();
     console.log('Pages: ' + pages.map((p) => p.url().slice(0, 40)).join(' | '));
     page = pages.find((p) => /astrobin\.com/.test(p.url())) || pages[0] || (await browser.newPage());
+    await ensureViewport(page);
     // `bringToFront` can hang for minutes on a window that Wayland reports as
     // occluded; bound it, and never let it block the upload.
     await Promise.race([page.bringToFront().catch(() => {}), sleep(3000)]);
@@ -1703,6 +2664,7 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
         page = open;
         console.log(`Reusing open wizard tab for draft ${id} (no navigation).`);
         await Promise.race([page.bringToFront().catch(() => {}), sleep(3000)]);
+        await ensureViewport(page);
         await sleep(1200);
       } else {
         console.log(`Opening draft ${id} ...`);
@@ -1737,13 +2699,25 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
       await uploadFile(page, opts);
     }
 
-    if (opts.description) await fillDescription(page, opts.description);
     if (opts.doSetup && setup) await clearWizardCache(page);
+    // Fill the required Content cards *before* the description: the wizard
+    // refuses to switch steps while Content is incomplete, so an early attempt
+    // to go back to Basic information just bounces off.
+    await clearOverlays(page);
     await fillRequiredContent(page, opts);
+    if (opts.description) await fillDescription(page, opts.description);
     if (opts.doSetup && setup) await applySetup(page, setup);
-    if (opts.doAcquisition && csv) await importAcquisitionCsv(page, csv);
-    if (opts.doAcquisition && csv) await applyAcquisitionFilters(page, rows);
-    if (opts.doAcquisition && csv) await reportAcquisitionRows(page);
+
+    if (opts.doAcquisition && csv) {
+      await importAcquisitionCsv(page, csv, opts.csvFilterColumn);
+      // AstroBin's CSV `filter` column only accepts ids from its own filter
+      // catalogue; ids outside this image's equipment setup are dropped
+      // silently and the column comes out blank. Assign filters in the row
+      // editor instead, which validates against the setup, and treat a row
+      // that keeps no filter as a hard failure rather than saving it.
+      await applyAcquisitionFilters(page, rows);
+      await reportAcquisitionRows(page);
+    }
 
     const url = await saveDraft(page);
     console.log(`\nOpen it at: ${url}`);

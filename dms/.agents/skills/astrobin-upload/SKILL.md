@@ -76,6 +76,9 @@ unless disabled.
 | `--description <text>` / `--description-file <path>` | Explicit description; overrides auto. |
 | `--setup <name>` / `--no-setup` | Override / skip the "Your setups" apply. |
 | `--no-acquisition` | Skip the acquisition CSV import. |
+| `--night-cutoff HH:MM` | Local hour that starts a new imaging night (default `12:00`). Frames before it belong to the previous calendar day. |
+| `--csv-filter-column <name>` | Column carrying the filter id in the CSV (default `filter`). |
+| `--no-csv-filters` | Omit the filter column; filters are then set row by row in the UI. |
 | `--inventory-root <path>` | Inventory root (default `/data/Astro/CCD` or `$ASTRO_INVENTORY_ROOT`). |
 | `--object-dir <dir>` `--telescope <name>` | Inventory context for `--resume`. |
 | `--dry-run` | Print the derived setup name + acquisition CSV and exit. |
@@ -165,20 +168,48 @@ the browser.
    Override with `--setup <name>`, skip with `--no-setup`.
 7. **Acquisition** — light frames are scanned from the inventory object directory
    (FITS headers: `EXPTIME`, `DATE-OBS`, `FILTER`, `XBINNING`, `GAIN`, `CCD-TEMP`,
-   `ISO`; or EXIF via `exiv2` for DSLR frames), aggregated by
-   date/filter/binning/gain/cooling/ISO (durations within ~2% merge), then imported
-   through the Acquisition step's "Import → From CSV" modal. AstroBin's CSV format
-   (`date,number,duration,iso,binning,gain,sensorCooling`) omits `filter` because it
-   takes a numeric equipment ID, so each row's filter dropdown is set in the UI.
-   Skip with `--no-acquisition`.
-8. Clicks the visible Save button, waits for `/i/<id>`, verifies the staging banner.
+   `ISO`; or EXIF via `exiv2` for DSLR frames). Frames are bucketed by **imaging
+   night**, not calendar date: with the default `--night-cutoff 12:00`, anything
+   captured before noon local counts as the previous night, so a session that
+   runs through midnight becomes one row. Within a night, rows group by
+   filter/binning/gain/cooling/ISO (durations within ~2% merge). Imported through
+   the Acquisition step's "Import → From CSV" modal. Skip with `--no-acquisition`.
+8. Clicks the visible Save button, answers the equipment prompt (see below),
+   waits for `/i/<id>`, verifies the staging banner.
 
-## Filter equipment: what has to exist for row assignment to work
+## Filters travel inside the CSV
+
+The importer accepts a `filter` column holding the **numeric id of a filter page
+in AstroBin's equipment database** — the number in `…/equipment/filter/<id>/`, the
+same value the wizard writes into a session's `filter2` field. `FILTER_DB_IDS` in
+`upload.js` maps the inventory's one-letter filter names to those ids:
+
+| Letter | Filter (id) |
+| --- | --- |
+| `L` | Baader UV/IR Cut / Luminance 36 mm (`8483`) |
+| `B` `G` `R` | Baader B/G/R-CCD **36 mm variants** (`4982` `5000` `5104`) |
+| `H` `O` `S` | Scorpio H-alpha / OIII / SII 3 nm 36 mm (`27590` `27591` `27589`) |
+
+Two rules learned the hard way:
+
+- **The header is validated.** An unknown column aborts the import with "The CSV
+  header contains unexpected values: …" — `filter2` is *not* accepted, only
+  `filter`, even though the saved session field is called `filter2`.
+- **Use the variant id for filters that come in sizes.** `709` (Baader Blue) also
+  resolves and shows as "Baader Blue (B-CCD)", but the 36 mm variant (`4982`) is
+  the one matching the equipment actually used, and it renders as
+  "Baader Blue (B-CCD) 36 mm".
+
+After the import the script reads the rows back and only falls back to the
+per-row dropdown for rows that still show no filter, printing which rows came
+from the CSV.
+
+## Filter equipment: what has to exist for the fallback to work
 
 The per-row filter dropdown only offers filters attached to the image's
 equipment, i.e. the filters of the **setup** applied on the Equipment step. If a
 row shows "No items found", the setup is missing that filter object (or the
-Equipment step holds the wrong setup) — it is not something the CSV can carry.
+Equipment step holds the wrong setup).
 
 The account's setups (`GET /api/v2/equipment/equipment-preset/`) already cover
 every filter the inventory produces, so nothing needs defining:
@@ -190,9 +221,10 @@ every filter the inventory produces, so nothing needs defining:
 | `Esprit` (133860) | 709, 9014, 5000, 693, 27590, 27591, 27589 | Baader Blue, Clearglass, Green 36 mm, Red, H-alpha 3nm, OIII 3nm, SII 3nm |
 
 Note: `Esprit` has **no Luminance object**, while the inventory's Esprit objects
-(`LBN762`, `vdB158`) log Luminance frames. Its L rows will fall back to
-Clearglass unless id `8483` (Baader UV/IR Cut / Luminance 36 mm, already used by
-`RC8`) is added to that setup first.
+(`LBN762`, `vdB158`) log Luminance frames. Its L rows fall back to Clearglass
+unless id `8483` (Baader UV/IR Cut / Luminance 36 mm, already used by `RC8`) is
+added to that setup first. With the CSV carrying the filter id this matters less:
+the id is accepted whatever the setup contains.
 
 The row widget is an `ng-select` with a **virtual-scrolled** option list: only a
 few options exist in the DOM at once, so scanning rendered `.ng-option` nodes can
@@ -212,6 +244,10 @@ date get re-sorted — is visible rather than silent.
 | Save does nothing / stays on `#6` | The Content tab still has a red "This field is required." under Data source — the equipment card needs the drawer choice (Backyard etc.), not just the card click. |
 | Title field empty after typing | Angular needs real key events: focus, select-all, then `page.keyboard.type`, not `element.value = ...`. |
 | AstroBin asks to log in | The copied profile's cookies expired. Run `start-chrome.sh --fresh`, or log in inside the automated window. |
+| Wizard hangs after the acquisition import | AstroBin asks "Would you like to save this equipment configuration as a setup". Answer **"No, just save the image"** — `saveDraft()` clicks it inside its wait, and `clearOverlays()` handles it anywhere else. Never click *Yes*: it creates a preset and pollutes the last-used list the wizard prefills from. |
+| Every click after a failed import does nothing | Leftover modals (CSV form, confirmations) absorb the clicks. `clearOverlays()` runs before each step interaction. |
+| "Invalid CSV" though the text looks right | A previous attempt left text in the textarea and the new CSV got appended. Select-all + delete before typing. |
+| Filter column shows Bortle values | The row has two `ng-select`s (Filter, Bortle) and their option texts overlap ("Color zone: Blue"). Match against the labelled select and reject options matching `bortle|color zone`. |
 | CDP port dead after restart | Chrome refused the port because `--user-data-dir` was the default one. Check `~/.../chrome-automation.log`. |
 | Chrome runs, port 9222 never opens | `RemoteDebuggingAllowed` is off (Chrome 136+). Run `scripts/chrome-policy.sh` once, then restart `start-chrome.sh`. |
 
