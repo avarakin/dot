@@ -79,6 +79,7 @@ unless disabled.
 | `--night-cutoff HH:MM` | Local hour that starts a new imaging night (default `12:00`). Frames before it belong to the previous calendar day. |
 | `--csv-filter-column <name>` | Column carrying the filter id in the CSV (default `filter`). |
 | `--no-csv-filters` | Omit the filter column; filters are then set row by row in the UI. |
+| `--no-filter-verify` | Do not check AstroBin's acquisition Summary against the CSV, and do not repair blank filters. |
 | `--inventory-root <path>` | Inventory root (default `/data/Astro/CCD` or `$ASTRO_INVENTORY_ROOT`). |
 | `--object-dir <dir>` `--telescope <name>` | Inventory context for `--resume`. |
 | `--dry-run` | Print the derived setup name + acquisition CSV and exit. |
@@ -200,9 +201,25 @@ Two rules learned the hard way:
   the one matching the equipment actually used, and it renders as
   "Baader Blue (B-CCD) 36 mm".
 
-After the import the script reads the rows back and only falls back to the
-per-row dropdown for rows that still show no filter, printing which rows came
-from the CSV.
+After the import the script judges the result with AstroBin's **Summary** block
+(`table.acquisition-summary-table`: "Baader UV/IR Cut / Luminance 36 mm | 158 ×
+300s | 13h 10m"), which aggregates frames per filter and therefore survives
+AstroBin's re-sorting of imported rows by date. `verifyAcquisitionSummary` in
+`summary-verify.js` checks frame totals, total integration, and the per-filter
+frame counts against the CSV. A mismatch means a filter did not land (ids outside
+this account's equipment database are dropped silently), so blank rows are filled
+in the row editor and the Summary is re-checked; the run aborts only if it still
+does not match. `--no-filter-verify` skips the verdict. The verdict, not the row
+list, is the gate:
+
+- Summary labels are **abbreviated** ("UV/IR Cut", "B", "G", "R"), so
+  `letterOfLabel` accepts bare letters as well as full equipment names.
+- A row that is **expanded** renders its field text ("Baader Blue (B-CCD) 36 mm ×
+  Select…"), not the "Date/Filter/N×Ns" summary. Reading the collapsed summary
+  while the row is open reports a filter that landed as missing — that false alarm
+  aborted a correct LBN762 upload.
+- Rows are matched to CSV rows by **frames × duration** (consumed once each),
+  never by position.
 
 ## Filter equipment: what has to exist for the fallback to work
 
@@ -231,9 +248,11 @@ few options exist in the DOM at once, so scanning rendered `.ng-option` nodes ca
 miss a filter that does exist. `selectFilterInRow` therefore types AstroBin's own
 catalogue name (`H-alpha`, `OIII`, `SII`, `Luminance`, `Red`, `Green`, `Blue`) into
 the select and matches the narrowed list, falling back to a scan when the list is
-short. After assignment the script prints every row as AstroBin renders it
-(`Acquisition rows as AstroBin shows them`) so a positional slip — rows sharing a
-date get re-sorted — is visible rather than silent.
+short. Verification reads the row's filter `ng-select` **selected value**, which is
+what AstroBin saves. `reportAcquisitionRows` prints every row as AstroBin renders
+it (`Acquisition rows as AstroBin shows them`) for a human eyeball; the Summary
+verdict is the machine check. `node scripts/test-summary-verify.js` covers the
+verdict (30 cases, including the LBN762 Summary as AstroBin rendered it).
 
 ## Pitfalls (already handled — keep them handled)
 
@@ -248,6 +267,11 @@ date get re-sorted — is visible rather than silent.
 | Every click after a failed import does nothing | Leftover modals (CSV form, confirmations) absorb the clicks. `clearOverlays()` runs before each step interaction. |
 | "Invalid CSV" though the text looks right | A previous attempt left text in the textarea and the new CSV got appended. Select-all + delete before typing. |
 | Filter column shows Bortle values | The row has two `ng-select`s (Filter, Bortle) and their option texts overlap ("Color zone: Blue"). Match against the labelled select and reject options matching `bortle|color zone`. |
+| "N rows kept no filter" on a correct upload | The check read the collapsed row summary **while the row was expanded**, and an expanded row renders field text ("… × Select… +3 Copy Delete") with no `/` separators. The verdict is AstroBin's Summary block, which is position-independent; expanded rows are read from their filter `ng-select` value. |
+| Summary labels come back as `B`, `G`, `R` | AstroBin abbreviates filter names in the Summary. `letterOfLabel` accepts bare letters (plus full names, `UV/IR Cut` → L). |
+| A filter id lands on no row | AstroBin drops CSV `filter` ids outside this account's equipment database silently. The Summary verdict catches this and the repair path fills the blanks from the row editor. |
+| `pi --model swift-1.5-iq2_xs` → "Model not found" | `pi --model` needs a provider. `$PI_MODEL` carries the bare name, so `llmCall()` prefixes `llama.cpp/` when no provider is present. |
+| `pi` call times out with no output | `pi` waits for piped stdin. `stdio: ['ignore','pipe','pipe']` in `execFileSync`. |
 | CDP port dead after restart | Chrome refused the port because `--user-data-dir` was the default one. Check `~/.../chrome-automation.log`. |
 | Chrome runs, port 9222 never opens | `RemoteDebuggingAllowed` is off (Chrome 136+). Run `scripts/chrome-policy.sh` once, then restart `start-chrome.sh`. |
 

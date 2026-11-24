@@ -29,6 +29,8 @@
  *                             llama.cpp/swift-1.5-iq2_xs)
  *   --no-brave                Skip the Brave Search API even if BRAVE_API_KEY
  *                             is set (Wikipedia + DuckDuckGo only)
+ *   --no-filter-verify        Do not check AstroBin's acquisition Summary
+ *                             against the CSV, and do not repair blank filters
  *   --dry-run                 Print the derived setup/acquisition CSV and exit
  *   --port <n>                DevTools port (default 9222)
  *   --timeout <ms>            Max wait for the file upload (default 900000)
@@ -40,6 +42,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { verifyAcquisitionSummary, letterOfLabel, FILTER_MATCHERS, FILTER_LABELS, fmtSeconds } = require('./summary-verify.js');
 
 /** --source value -> [data source card, item in that card's drawer]. */
 const SOURCE_LABELS = {
@@ -88,26 +91,8 @@ const DEFAULT_LLM_MODEL = 'llama.cpp/swift-1.5-iq2_xs';
 /** Source URLs seen during retrieval, printed by --dry-run for fact checking. */
 const sourceUrls = new Set();
 
-/** Filter letter -> words used to recognise it in AstroBin's filter dropdown. */
-const FILTER_MATCHERS = {
-  H: /h[\s-]?alpha|\bha\b|hydrogen/i,
-  O: /o[\s-]?iii|\bo3\b|oxygen/i,
-  S: /s[\s-]?ii|\bs2\b|sulfur|sulphur/i,
-  L: /luminance|\blum\b|\bl\b|clear|uv\/ir/i,
-  R: /red/i,
-  G: /green/i,
-  B: /blue/i,
-};
-
-const FILTER_LABELS = {
-  L: 'Luminance',
-  R: 'Red',
-  G: 'Green',
-  B: 'Blue',
-  H: 'Ha',
-  O: 'OIII',
-  S: 'SII',
-};
+// FILTER_MATCHERS / FILTER_LABELS come from summary-verify.js, so the row-editor
+// matching and the summary verdict cannot drift apart.
 
 const DEFAULT_INVENTORY_ROOT =
   process.env.ASTRO_INVENTORY_ROOT || '/data/Astro/CCD';
@@ -158,6 +143,9 @@ function parseArgs(argv) {
     // CSV column carrying the equipment-database filter id ("" = no filters in
     // the CSV; filters are then assigned per row in the wizard).
     csvFilterColumn: 'filter',
+    // AstroBin's acquisition Summary is the verdict; a mismatch aborts the run
+    // unless this is off.
+    filterVerify: true,
   };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
@@ -190,6 +178,7 @@ function parseArgs(argv) {
     else if (a === '--no-brave') opts.noBrave = true;
     else if (a === '--no-csv-filters') opts.csvFilterColumn = null;
     else if (a === '--csv-filter-column') opts.csvFilterColumn = next();
+    else if (a === '--no-filter-verify') opts.filterVerify = false;
     else if (a === '--night-cutoff') {
       const v = next();
       const m = String(v).match(/^(\d{1,2})(?::(\d\d))?$/);
@@ -887,7 +876,11 @@ async function fetchAutoDescription(names, opts = {}) {
 /** Run a one-shot, toolless, non-interactive pi call; null on any failure. */
 async function llmCall(prompt, model) {
   const args = ['-p', '--no-session', '--no-tools'];
-  args.push('--model', model || process.env.PI_MODEL || DEFAULT_LLM_MODEL);
+  // `pi --model` needs a provider: a bare `swift-1.5-iq2_xs` (from PI_MODEL)
+  // is rejected with "Model not found", so a provider-less name is prefixed
+  // with the machine's configured provider.
+  const requested = model || process.env.PI_MODEL || DEFAULT_LLM_MODEL;
+  args.push('--model', requested.includes('/') ? requested : `llama.cpp/${requested}`);
   args.push(prompt);
   try {
     // stdin must be ignored: pi waits for piped stdin when it is a pipe, which
@@ -2077,9 +2070,194 @@ async function importAcquisitionCsv(page, csv, filterColumn) {
   console.log('Acquisition CSV imported.');
 }
 
-/** After import, set each row's filter from the image's equipment filters. */
-async function applyAcquisitionFilters(page, rows, skip = new Set()) {
-  const wanted = rows.filter((r) => r.filter && !skip.has(r.filter)).length;
+
+// --- Summary verdict ------------------------------------------------------
+
+/**
+ * Read AstroBin's acquisition Summary block: one table row per filter
+ * ("Baader UV/IR Cut / Luminance 36 mm | 158 × 300s"). The block can be
+ * collapsed, so open it before reading. Counts are aggregated per filter, which
+ * is why this is the check that survives AstroBin's date re-sort.
+ */
+async function readSummaryGroups(page) {
+  await page.evaluate(() => {
+    if (document.querySelector('table.acquisition-summary-table')) return;
+    const header = document.querySelector('.table-summary-header');
+    if (header) header.click();
+  });
+  await sleep(700);
+  return page.evaluate(() => {
+    const table = document.querySelector('table.acquisition-summary-table');
+    if (!table) return [];
+    const out = [];
+    for (const tr of table.querySelectorAll('tbody tr')) {
+      const tds = Array.from(tr.querySelectorAll('td'));
+      if (tds.length < 2) continue;
+      const label = (tds[0].innerText || '').replace(/\s+/g, ' ').trim();
+      if (!label || /^totals$/i.test(label)) continue;
+      const m = (tds[1].innerText || '').replace(/\s+/g, ' ').match(/(\d+)\s*×\s*(\d+(?:\.\d+)?)s/);
+      if (!m) continue;
+      out.push({ label, frames: Number(m[1]), duration: Number(m[2]) });
+    }
+    return out;
+  });
+}
+
+function logSummaryGroups(groups, verdict) {
+  const line = groups.map((g) => `${g.label} ${g.frames}×${g.duration}s`).join(' | ') || '(no groups)';
+  console.log(`  AstroBin summary: ${line}`);
+  console.log(`  CSV intent: ${verdict.expFrames} frames, ${fmtSeconds(verdict.expSeconds)}`);
+  if (!verdict.ok) console.warn(`  mismatch: ${verdict.problems.join('; ')}`);
+}
+
+/** Open a collapsible acquisition row so its Formly fields exist. */
+async function expandAcquisitionRow(page, index) {
+  return page.evaluate(async (idx) => {
+    const get = () =>
+      document.querySelectorAll(
+        '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+      )[idx];
+    const row = get();
+    if (!row) return 'no such row';
+    row.scrollIntoView({ block: 'center' });
+    const isOpen = (r) =>
+      /expanded/.test(r.className) || r.querySelectorAll('.form-group, .formly-field, .field-wrapper').length > 0;
+    if (isOpen(row)) return 'expanded';
+    const chevron = '.collapsed-row-summary, .collapsed-row-content, .chevron-icon, .fa-chevron-right';
+    (row.querySelector(chevron) || row).click();
+    for (let t = 0; t < 20; t++) {
+      await new Promise((r) => setTimeout(r, 250));
+      const fresh = get();
+      if (fresh && isOpen(fresh)) return 'expanded';
+      // Angular replaces the row element, so a stale reference never reports
+      // `expanded`; re-fetch and click again.
+      if (fresh) (fresh.querySelector(chevron) || fresh).click();
+    }
+    return 'not expanded';
+  }, index);
+}
+
+/** The collapsed row summary text, e.g. "Nov 4, 2024/UV/IR Cut/6×300s". */
+async function readCollapsedSummary(page, index) {
+  return page.evaluate((idx) => {
+    const row = document.querySelectorAll(
+      '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+    )[idx];
+    if (!row) return '';
+    const sec = row.querySelector('.collapsed-row-text') || row.querySelector('.collapsed-row-content') || row;
+    return (sec.innerText || '').replace(/\s+/g, ' ').trim();
+  }, index);
+}
+
+/**
+ * The Formly fields of an expanded row, keyed by their label ("date", "filter",
+ * "frames", "duration", "bortle"). An ng-select reports its selected value, not
+ * the placeholder, so an empty filter reads as "".
+ */
+async function readRowFields(page, index) {
+  const raw = await page.evaluate((idx) => {
+    const row = document.querySelectorAll(
+      '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
+    )[idx];
+    if (!row) return null;
+    const out = {};
+    for (const grp of row.querySelectorAll('.form-group, .formly-field, .field-wrapper')) {
+      const labEl = grp.querySelector('label');
+      if (!labEl) continue;
+      const key = (labEl.innerText || '').replace(/\s+/g, ' ').trim().toLowerCase().split('(')[0].trim();
+      if (!key) continue;
+      const inp = grp.querySelector('input');
+      const sel = grp.querySelector('ng-select, .ng-select');
+      let value = '';
+      if (inp && inp.value) value = inp.value.trim();
+      else if (sel) {
+        const picked = sel.querySelector('.ng-value-label, .ng-value, .selected-item');
+        value = (picked ? picked.innerText : '').replace(/\s+/g, ' ').trim();
+      }
+      out[key] = value;
+    }
+    return out;
+  }, index);
+  if (!raw) return null;
+  const pick = (...words) => {
+    for (const key of Object.keys(raw)) {
+      if (words.some((w) => key.includes(w))) return raw[key];
+    }
+    return '';
+  };
+  return {
+    date: raw.date || pick('date'),
+    filter: raw.filter || pick('filter'),
+    frames: raw.frames || pick('frame', 'number'),
+    duration: raw.duration || pick('duration', 'expo'),
+  };
+}
+
+/**
+ * Fill every row whose filter field is empty, matching rows to CSV rows by
+ * frame count and duration (not position, which AstroBin re-sorts), and consume
+ * each CSV row once so repeated counts on one night cannot be double-claimed.
+ */
+async function fillMissingFilters(page, rows, rowCount) {
+  const remaining = rows.map((r) => ({ ...r, used: false }));
+  let edited = 0;
+  for (let i = 0; i < Math.min(rowCount, rows.length); i++) {
+    const state = await expandAcquisitionRow(page, i);
+    if (state !== 'expanded') {
+      // A collapsed row's summary reads "Nov 4, 2024/UV/IR Cut/6×300s", so the
+      // filter is legible without opening the row; that is enough to know this
+      // row is not the blank one.
+      const summary = await readCollapsedSummary(page, i);
+      const parts = summary.split('/');
+      const letterInSummary = parts.length >= 3 ? letterOfLabel(parts[1]) : null;
+      if (letterInSummary) {
+        console.log(`  row ${i + 1} (collapsed) carries ${parts[1]}`);
+        const cand = remaining.find((r) => !r.used && r.filter === letterInSummary);
+        if (cand) cand.used = true;
+        continue;
+      }
+      console.warn(`  row ${i + 1}: ${state}; cannot read its filter field`);
+      continue;
+    }
+    const fields = await readRowFields(page, i);
+    if (!fields) {
+      console.warn(`  row ${i + 1}: no fields rendered`);
+      continue;
+    }
+    const frames = Number(fields.frames);
+    const duration = Number(fields.duration);
+    const cand = remaining.find((r) => !r.used && r.number === frames && Math.abs(r.duration - duration) < 0.5);
+    if (!cand) {
+      console.warn(`  row ${i + 1}: ${fields.frames}×${fields.duration}s matches no CSV row`);
+      continue;
+    }
+    cand.used = true;
+    const letter = cand.filter;
+    const re = FILTER_MATCHERS[letter];
+    if (re && re.test(fields.filter || '')) {
+      console.log(`  row ${i + 1} already carries ${fields.filter}`);
+      continue;
+    }
+    const ok = await selectFilterInRow(page, i, letter);
+    if (ok) edited++;
+    else
+      console.warn(
+        `  row ${i + 1}: could not set ${FILTER_LABELS[letter] || letter} (field shows "${fields.filter || 'blank'}")`
+      );
+  }
+  return edited;
+}
+
+/**
+ * After import, confirm the acquisition table against AstroBin's Summary, which
+ * aggregates frames per filter. A mismatch means a filter did not land (an id
+ * outside this account's equipment database is dropped silently), so fill the
+ * blank rows in the row editor and re-check. The verdict is the Summary: the
+ * per-row collapsed summary is not used, because an expanded row reports its
+ * field text instead and that produced false alarms.
+ */
+async function applyAcquisitionFilters(page, rows, opts = {}) {
+  const wanted = rows.filter((r) => r.filter).length;
   // The import can leave dialogs open (save-setup prompt, confirmation), and
   // those swallow every later click.
   await clearOverlays(page);
@@ -2100,94 +2278,33 @@ async function applyAcquisitionFilters(page, rows, skip = new Set()) {
   if (rowCount < rows.length) {
     console.warn(`warning: ${rows.length} CSV row(s) but ${rowCount} acquisition row(s) rendered`);
   }
-  // AstroBin re-sorts imported sessions by date, and filter assignment is
-  // positional, so rows sharing a date can slip.
-  const dates = rows.map((r) => r.date);
-  const shared = [...new Set(dates.filter((d, i) => dates.indexOf(d) !== i))];
-  if (shared.length) {
-    console.warn(
-      `warning: ${shared.length} date(s) hold several rows (${shared.join(', ')}). ` +
-        'AstroBin re-sorts by date, so verify the filter column after import.'
-    );
+
+  const groups = await readSummaryGroups(page);
+  let verdict = verifyAcquisitionSummary(rows, groups);
+  logSummaryGroups(groups, verdict);
+  if (verdict.ok) {
+    console.log('Acquisition summary matches the CSV.');
+    return;
+  }
+  if (opts.filterVerify === false) {
+    console.warn('filter verification disabled (--no-filter-verify); leaving the table as AstroBin reports it');
+    return;
   }
 
-  let missed = 0;
-  let fromCsv = 0;
-  for (let i = 0; i < Math.min(rowCount, rows.length); i++) {
-    const letter = rows[i].filter;
-    if (!letter || skip.has(letter)) continue;
-    // The CSV may already have carried the filter (a `filter2` column). Row
-    // summaries read "Nov 8, 2026/Baader Blue (B-CCD)/28x300s", so three
-    // segments means the filter landed and the row needs no editing.
-    const summary = await page.evaluate((idx) => {
-      const r = document.querySelectorAll(
-        '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
-      )[idx];
-      if (!r) return '';
-      const sec = r.querySelector('.collapsed-row-text') || r;
-      return (sec.innerText || '').replace(/\s+/g, ' ').trim();
-    }, i);
-    if (summary.split('/').length >= 3) {
-      fromCsv++;
-      console.log(`  row ${i + 1} filter from CSV: ${summary}`);
-      continue;
-    }
-    const ok = await selectFilterInRow(page, i, letter);
-    if (!ok) missed++;
-  }
-  if (fromCsv) console.log(`  ${fromCsv} row(s) took their filter straight from the CSV`);
-  if (missed) {
-    const summary = await page.evaluate(() => {
-      const host = document.getElementById('image-stepper-acquisition') || document.body;
-      const m = (host.innerText || '').match(/Summary[\s\S]{0,200}/);
-      return m ? m[0].replace(/\s+/g, ' ').slice(0, 200) : '';
-    });
+  console.warn(`summary does not match the CSV; filling filters in the row editor`);
+  const edited = await fillMissingFilters(page, rows, rowCount);
+  const after = await readSummaryGroups(page);
+  verdict = verifyAcquisitionSummary(rows, after);
+  logSummaryGroups(after, verdict);
+  if (!verdict.ok) {
     throw new Error(
-      `${missed} acquisition row(s) kept no filter — aborting rather than saving a session with a blank filter column. Summary: ${summary}`
+      `acquisition summary does not match the CSV after repair (${verdict.problems.join('; ')}); ` +
+        `${edited} row(s) edited, ${rowCount} row(s) rendered`
     );
   }
+  console.log(`Acquisition summary matches the CSV after repairing ${edited} row(s).`);
 }
 
-// The row filter widget is an ng-select with a virtual-scrolled option list:
-// only a handful of options exist in the DOM at a time, so scanning rendered
-// `.ng-option`s can miss a filter the user really has. Type a search term
-// first, then match. Terms are AstroBin's own catalogue names.
-const FILTER_SEARCH_TERMS = {
-  H: 'H-alpha',
-  O: 'OIII',
-  S: 'SII',
-  L: 'Luminance',
-  R: 'Red',
-  G: 'Green',
-  B: 'Blue',
-};
-
-// Visible dropdown options, deduped, with click coordinates.
-async function dropdownOptions(page) {
-  return page.evaluate(() => {
-    const seen = new Set();
-    return Array.from(document.querySelectorAll('.ng-dropdown-panel .ng-option'))
-      .filter((o) => {
-        const r = o.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      })
-      .map((o) => {
-        const label = (o.innerText || '').replace(/\s+/g, ' ').trim();
-        const r = o.getBoundingClientRect();
-        return { label, x: r.x + r.width / 2, y: r.y + r.height / 2 };
-      })
-      .filter((o) => {
-        if (!o.label || seen.has(o.label)) return false;
-        seen.add(o.label);
-        return true;
-      });
-  });
-}
-
-// Assign row `index`'s filter. The upload wizard renders sessions as
-// collapsible rows (the edit wizard renders a columned table), so expand the
-// row first and then drive the ng-select inside it. ng-select virtual-scrolls
-// its option list, so type AstroBin's own name for the filter before scanning.
 // Assign row `index`'s filter. Sessions render as collapsible rows: the row
 // must be opened (click the summary, wait for the "expanded" class) before its
 // formly fields exist, and the Filter field is an ng-select whose option list
@@ -2275,6 +2392,13 @@ async function selectFilterInRow(page, index, letter) {
     return false;
   }
 
+  // A re-run must not re-open a row that already carries the filter.
+  const prefields = await readRowFields(page, index);
+  if (prefields && prefields.filter && re.test(prefields.filter)) {
+    console.log(`  row ${index + 1} already carries ${prefields.filter}`);
+    return true;
+  }
+
   const found = await rowFilterCandidates(page, index);
   const cands = found.candidates || [];
   if (!cands.length) {
@@ -2310,17 +2434,13 @@ async function selectFilterInRow(page, index, letter) {
     if (hit) {
       await page.mouse.click(hit.x, hit.y);
       await sleep(800);
-      const summary = await page.evaluate((idx) => {
-        const rows = document.querySelectorAll(
-          '.acquisition-table .collapsible-row, .acquisition-table .datatable-body-row'
-        );
-        const row = rows[idx];
-        if (!row) return '';
-        const sec = row.querySelector('.collapsed-row-text') || row;
-        return (sec.innerText || '').replace(/\s+/g, ' ').trim();
-      }, index);
-      console.log(`  row ${index + 1} filter -> ${hit.label} [${summary}]`);
-      return summary.split('/').length >= 3;
+      // Verify the field AstroBin will save, not the row's collapsed summary:
+      // while the row is expanded the summary shows the field text, so a
+      // summary-based check reports a filter that landed as missing.
+      const fields = await readRowFields(page, index);
+      const value = (fields && fields.filter) || '';
+      console.log(`  row ${index + 1} filter -> ${hit.label} [field: ${value || 'blank'}]`);
+      return re.test(value);
     }
 
     await page.keyboard.press('Escape').catch(() => {});
@@ -2712,10 +2832,9 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
       await importAcquisitionCsv(page, csv, opts.csvFilterColumn);
       // AstroBin's CSV `filter` column only accepts ids from its own filter
       // catalogue; ids outside this image's equipment setup are dropped
-      // silently and the column comes out blank. Assign filters in the row
-      // editor instead, which validates against the setup, and treat a row
-      // that keeps no filter as a hard failure rather than saving it.
-      await applyAcquisitionFilters(page, rows);
+      // silently. The Summary verdict catches that, and the row editor fills
+      // whatever is missing.
+      await applyAcquisitionFilters(page, rows, opts);
       await reportAcquisitionRows(page);
     }
 
