@@ -18,6 +18,7 @@ minimum_release_age = "0h"
 "~/.config/mise/yay.sh" = {}
 "~/.config/niri/config.kdl" = {}
 "~/.config/opencode/opencode.jsonc" = {}
+"~/.config/systemd/user/basalt.service" = {}
 "~/.config/systemd/user/dms.service.d/override.conf" = {}
 "~/.emacs" = {}
 "~/.pi/agent/AGENTS.md" = {}

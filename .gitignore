@@ -6,3 +6,4 @@ dms/.config/DankMaterialShell/settings.json
 dms/.config/alacritty/local.toml
 dms/.config/kitty/local.conf
 dms/.pi/agent/extensions/herdr-agent-state.ts
+dms/ai/basalt/basalt_config.totals*.json

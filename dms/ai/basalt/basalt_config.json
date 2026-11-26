@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "models": [
+    {
+      "model": "/ssd/data/ai/models/Inkling-2-Mini-NVFP4-MX8.basalt",
+      "gpu": "0",
+      "kv": "fp8",
+      "max-context": 128000,
+      "fit-max-tokens": true,
+      "idle-unload": 300
+    },
+    {
+      "model": "/ssd/data/ai/models/Inkling-2-Mini-NVFP4-MX8.3GB.basalt",
+      "gpu": "0",
+      "kv": "fp8",
+      "max-context": 128000,
+      "fit-max-tokens": true,
+      "alias": "Inkling 2 Mini-3GB",
+      "vram-reserve-mib": 3072,
+      "idle-unload": 300
+    },
+    {
+      "model": "/ssd/data/ai/models/Qwen3.8-FN-UD-IQ3_XXS.basalt",
+      "gpu": "0",
+      "kv": "q4_0",
+      "max-context": 128000,
+      "fit-max-tokens": true,
+      "idle-unload": 300
+    }
+  ],
+  "engine": {
+    "spec": 8
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "lazy": true
+  }
+}

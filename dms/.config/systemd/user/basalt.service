@@ -1,0 +1,28 @@
+[Unit]
+Description=Basalt local inference server (OpenAI + Anthropic API on :8080)
+Documentation=file:///ssd/data/ai/basalt/docs/running.md
+# A port clash with a hand-started server must not spin the unit forever.
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=exec
+WorkingDirectory=/ssd/data/ai/basalt
+# The config is the dotfile copy in ~/dot/dms/ai/basalt; /ssd/data/ai/basalt/basalt_config.json symlinks to it.
+# Model paths inside it are absolute because basalt resolves relative ones against the config file's directory.
+ExecStart=/ssd/data/ai/basalt/bin/basalt serve --config %h/dot/dms/ai/basalt/basalt_config.json
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Restart=on-failure
+RestartSec=10
+# SIGTERM runs the server's graceful path: QUIT to the engine (20 s), then TERM (20 s), then KILL.
+KillSignal=SIGTERM
+KillMode=control-group
+TimeoutStopSec=180
+StandardOutput=journal
+StandardError=journal
+# The engine logs and conversation cache live under ~/.cache/basalt, so no ProtectHome.
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
