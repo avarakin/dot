@@ -2,6 +2,25 @@
   "providers": {
     "llama.cpp": {
       "modelOverrides": {
+        "Qwen3.8-Flash-Next UD-IQ3_XXS": {
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "off",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "xhigh",
+            "xhigh": "xhigh",
+            "max": null
+          },
+          "compat": {
+            "thinkingFormat": "chat-template",
+            "chatTemplateKwargs": {
+              "enable_thinking": { "$var": "thinking.enabled" },
+              "reasoning_effort": { "$var": "thinking.effort", "omitWhenOff": true }
+            }
+          }
+        },
         "qwen3.8-flash-next-iq3_s": {
           "thinkingLevelMap": {
             "off": "off",
@@ -35,6 +54,42 @@
             "chatTemplateKwargs": {
               "enable_thinking": { "$var": "thinking.enabled" },
               "reasoning_effort": { "$var": "thinking.effort", "omitWhenOff": true }
+            }
+          }
+        },
+        "Inkling 2 Mini": {
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": "minimal",
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": null,
+            "max": "max"
+          },
+          "compat": {
+            "thinkingFormat": "chat-template",
+            "chatTemplateKwargs": {
+              "reasoning_effort": { "$var": "thinking.effort" }
+            }
+          }
+        },
+        "Inkling 2 Mini-3GB": {
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": "minimal",
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": null,
+            "max": "max"
+          },
+          "compat": {
+            "thinkingFormat": "chat-template",
+            "chatTemplateKwargs": {
+              "reasoning_effort": { "$var": "thinking.effort" }
             }
           }
         }

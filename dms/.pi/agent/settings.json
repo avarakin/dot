@@ -2,7 +2,8 @@
   "lastChangelogVersion": "1.6.0",
   "theme": "terminal",
   "defaultProvider": "llama.cpp",
-  "defaultModel": "swift-1.5-iq2_xs",
+  "defaultModel": "Qwen3.8-Flash-Next UD-IQ3_XXS",
+  "defaultThinkingLevel": "medium",
   "packages": [
     "npm:pi-terminal-theme",
     "npm:pi-docparser",
