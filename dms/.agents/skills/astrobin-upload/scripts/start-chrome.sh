@@ -6,7 +6,7 @@
 # user's AstroBin (and every other) login without touching the live profile.
 #
 # Usage: start-chrome.sh [--kill] [--fresh]
-#   --kill   stop any running Chrome first (closes the user's windows)
+#   --kill   stop a previous debug Chrome holding the copied profile first
 #   --fresh  re-copy the profile from scratch (use after cookies expire)
 #
 # Env: PORT (default 9222), PROFILE (default /tmp/opencode/chrome-profile),
@@ -39,16 +39,19 @@ if cdp_up; then
   exit 0
 fi
 
-if pgrep -x chrome >/dev/null; then
+# The debug Chrome runs on a copied profile (separate --user-data-dir), so it
+# coexists with the user's own Chrome. Only a previous debug instance holding
+# this copy can block the launch.
+if pgrep -f -- "--user-data-dir=$PROFILE" >/dev/null; then
   if [ "$KILL" -eq 1 ]; then
-    echo "Stopping running Chrome..."
-    pkill -x chrome || true
-    for _ in $(seq 1 20); do pgrep -x chrome >/dev/null || break; sleep 0.5; done
+    echo "Stopping previous debug Chrome (profile $PROFILE)..."
+    pkill -f -- "--user-data-dir=$PROFILE" || true
+    for _ in $(seq 1 20); do pgrep -f -- "--user-data-dir=$PROFILE" >/dev/null || break; sleep 0.5; done
   else
     cat >&2 <<EOF
-Chrome is running, but without a DevTools port on 127.0.0.1:${PORT}.
-Re-run with --kill to close it first (Chrome restores its tabs on next start),
-or close Chrome yourself and run this script again.
+A debug Chrome is already running on the copied profile $PROFILE, but the
+DevTools port 127.0.0.1:${PORT} is not up. Close that Chrome window (or re-run
+with --kill to stop it) and try again. Your normal Chrome is not affected.
 EOF
     exit 1
   fi

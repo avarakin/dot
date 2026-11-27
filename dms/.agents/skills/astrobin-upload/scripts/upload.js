@@ -25,13 +25,18 @@
  *   --llm-description         Rephrase the fetched source text with a
  *                             headless `pi -p` call; accepted only if the
  *                             fact guard matches the source
+ *   --describe-only           Run only the auto-description step, print one
+ *                             `DESCRIBE_JSON {…}` line, and exit (no Chrome)
  *   --llm-model <pattern>     Model for --llm-description (default:
- *                             llama.cpp/swift-1.5-iq2_xs)
+ *                             llama.cpp/Qwen3.8-Flash-Next UD-IQ3_XXS)
  *   --no-brave                Skip the Brave Search API even if BRAVE_API_KEY
  *                             is set (Wikipedia + DuckDuckGo only)
  *   --no-filter-verify        Do not check AstroBin's acquisition Summary
  *                             against the CSV, and do not repair blank filters
  *   --dry-run                 Print the derived setup/acquisition CSV and exit
+ *   --acquisition-json        Print one ACQ_JSON line with the scanned
+ *                             acquisition rows (frames, seconds, per-night
+ *                             rows) and exit — no Chrome, no description
  *   --port <n>                DevTools port (default 9222)
  *   --timeout <ms>            Max wait for the file upload (default 900000)
  *
@@ -86,7 +91,7 @@ const EXPECTED_TELESCOPE = {
  * the skill never lands on a rate-limited free tier: pi's configured default is
  * an OpenRouter free model that returns 429 free-models-per-day.
  */
-const DEFAULT_LLM_MODEL = 'llama.cpp/swift-1.5-iq2_xs';
+const DEFAULT_LLM_MODEL = 'llama.cpp/Qwen3.8-Flash-Next UD-IQ3_XXS';
 
 /** Source URLs seen during retrieval, printed by --dry-run for fact checking. */
 const sourceUrls = new Set();
@@ -173,6 +178,7 @@ function parseArgs(argv) {
     else if (a === '--no-setup') opts.doSetup = false;
     else if (a === '--no-acquisition') opts.doAcquisition = false;
     else if (a === '--auto-description') opts.autoDescription = true;
+    else if (a === '--describe-only') opts.describeOnly = true;
     else if (a === '--llm-description') opts.llmDescription = true;
     else if (a === '--llm-model') opts.llmModel = next();
     else if (a === '--no-brave') opts.noBrave = true;
@@ -189,6 +195,7 @@ function parseArgs(argv) {
       opts.nightCutoff = hh + mm / 60;
     }
     else if (a === '--dry-run') opts.dryRun = true;
+    else if (a === '--acquisition-json') opts.acquisitionJson = true;
     else if (a === '-h' || a === '--help') opts.help = true;
     else if (a.startsWith('--')) throw new Error(`unknown option: ${a}`);
     else positional.push(a);
@@ -703,13 +710,17 @@ async function braveContext(query, known) {
   const snippets = [];
   for (const group of (data.grounding && data.grounding.generic) || []) {
     const block = [group.title, ...(group.snippets || [])].join(' ');
-    // Identity check: a page about a different catalogue number is not about this
-    // object. "Bubble Nebula" is NGC 7635 and also NGC 6822, and the API returns
-    // both; grounding on the wrong article is worse than no grounding.
+    // Identity check: a page that names other catalogue objects *without ever
+    // naming the target* is about something else ("Bubble Nebula" is NGC 7635
+    // and also NGC 6822; grounding on the wrong article is worse than none).
+    // Obscure objects' true pages routinely mention neighbours (Arp 276 in a
+    // Cloudy Nights thread about LBN 707), so foreign names are only fatal
+    // when the block does not mention the target itself.
     const found = designations(block);
     if (known && known.length) {
       const foreign = found.filter((d) => !known.includes(d));
-      if (foreign.length) continue;
+      const mentionsTarget = found.some((d) => known.includes(d));
+      if (foreign.length && !mentionsTarget) continue;
     }
     if (group.url) sourceUrls.add(group.url);
     for (const raw of group.snippets || []) {
@@ -723,8 +734,44 @@ async function braveContext(query, known) {
 
 /** Catalogue numbers in text, normalised without spaces (NGC 7635 -> NGC7635). */
 function designations(text) {
-  return (String(text).match(/\b(NGC|IC|Sh\s?2|LBN|Messier|M)(\s?\d+[a-z]?)/gi) || [])
-    .map((d) => d.replace(/\s+/g, ''));
+  return (
+    String(text).match(
+      /\b(NGC|UGC|PGC|LDN|LBN|ARP|ABELL|MBM|VDB|Sh\s?2|IC|Messier|M)(\s?-?\d+[a-z]?)/gi
+    ) || []
+  ).map((d) => d.replace(/\s+/g, ''));
+}
+
+/**
+ * Brave web-search snippets: the plain /web/search endpoint, one query per
+ * spelling (quoted, then bare). Unlike llm/context this finds obscure objects
+ * ("LBN 707 · Aries · HII region"), and unlike DuckDuckGo it tolerates short
+ * fact-dense fragments. Relevance is enforced downstream by mentionWindow.
+ */
+async function braveWebSnippets(name) {
+  if (!process.env.BRAVE_API_KEY) return [];
+  const out = [];
+  for (const q of [`"${name}"`, name]) {
+    const data = await fetchJson(
+      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&count=8&text_decorations=false`,
+      { 'X-Subscription-Token': process.env.BRAVE_API_KEY, Accept: 'application/json' }
+    );
+    for (const r of (data.web && data.web.results) || []) {
+      let text = cleanText([r.title, r.description].filter(Boolean).join(' — ')).replace(/·/g, ',');
+      // Scrub trailing site furniture that Brave folds into descriptions
+      // ("… , Page 234567891011 , Bucharest , Color scheme ,").
+      text = text
+        .split(/\s*,\s*/)
+        .filter((seg) => !/^(page \d|color scheme|light night mode|view profile|send private message|share\b|navigation context|click on image|full size|original version|inverted monochrome|sign in|log in|contact us)/i.test(seg.trim()))
+        .join(', ');
+      if (process.env.DESCRIBE_DEBUG) console.warn(`brave chunk: ${text.slice(0, 160)}`);
+      if (text.length < 15) continue;
+      if (!/[.!?]$/.test(text)) text += '.'; // fragments need a terminator for the junk filter
+      if (out.includes(text)) continue;
+      out.push(text);
+    }
+    if (out.length) break; // quoted hit is enough; the bare query only if it was empty
+  }
+  return out.slice(0, 6);
 }
 
 async function duckduckgoSnippets(query) {
@@ -780,37 +827,108 @@ function isJunkSentence(s) {
     // fragments, and sentences that end mid-word (a scrape artefact).
     /The physical distance from Earth|The physical size of the object|A name or catalog number|Charts created using|Limiting magnitudes:|Times are shown for timezone|Please set your location|Retrieved\s+October|Retrieved\s+November|\u2191|\[\d+\]/.test(s) ||
     // A fragment with no terminating punctuation is a truncated scrape, not a sentence.
-    /[A-Za-z,)]\s*$/.test(s)
+    /[A-Za-z,)]\s*$/.test(s) ||
+    // Wiki table / infobox row dumps ("edit | Language | Label | …").
+    s.includes(' | ') ||
+    // Raw decimal-coordinate pairs from catalogue dumps ("-119.05781,51.30381").
+    /-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}/.test(s) ||
+    // Gallery/forum page furniture ("327 views", "posted in <forum>:").
+    /\b\d+ [\d,]*\s?(?:k|thousand)?\s?views?\b|posted in\b|thanks for the comment/i.test(s) ||
+    // Rig chatter from personal upload pages.
+    /guiding (?:optics|camera)|integration:|objects the star/i.test(s) ||
+    // Orbital-element dumps from binary-star pages.
+    /semi-major axis|eccentricity \(e\)|longitude of the node|period \(p\)/i.test(s) ||
+    // Dense '·' separator dumps (gallery spec lines, catalogue rows).
+    (s.match(/·/g) || []).length >= 3
   );
+}
+
+/**
+ * Match tokens for mentions of an object name: the name itself, its
+ * squashed variant, and letter+digit catalog designations. Bare number
+ * runs are excluded so `707` cannot match "TGU 707" on an LBN707 page.
+ */
+function nameTokens(name) {
+  const norm = normalizeObjectName(name).toLowerCase();
+  const tokens = new Set([norm, norm.replace(/[\s_-]+/g, '')]);
+  for (const run of norm.match(/[a-z]+[ -]?\d+[a-z]?/g) || []) {
+    if (run.length >= 3) {
+      tokens.add(run);
+      tokens.add(run.replace(/[\s_-]+/g, ''));
+    }
+  }
+  return [...tokens].filter((t) => t.length >= 3);
+}
+
+/**
+ * Drop sentences about *other* objects: a source is only usable when some
+ * sentence explicitly names the target (full name, squashed variant, or a
+ * letter+digit designation); only a window around each mention survives so
+ * pronoun-following prose is kept but foreign articles are discarded.
+ */
+function mentionWindow(sentences, name, contiguous = false) {
+  const tokens = nameTokens(name).map((t) => [t, t.replace(/[\s_-]+/g, '')]);
+  if (!tokens.length) return sentences;
+  const hits = [];
+  sentences.forEach((s, i) => {
+    const hay = s.toLowerCase();
+    const haySq = hay.replace(/[\s_-]+/g, '');
+    if (tokens.some(([t, tSq]) => hay.includes(t) || haySq.includes(tSq))) hits.push(i);
+  });
+  if (!hits.length) return [];
+  // Snippet-style sources are *independent* fragments: the neighbours of a
+  // hit are other results, not context, so only direct mentions survive
+  // (this is how "Ross 458" once bled in beside an "LBN 458" snippet).
+  if (!contiguous) return sentences.filter((_, i) => hits.includes(i));
+  // Dense mentions mean a catalogue *listing* page (one row per object), not
+  // prose about this object: every row "mentions" the name but none describes it.
+  if (hits.length >= 6 && hits.length >= sentences.length * 0.3) return [];
+  const keep = new Set();
+  for (const i of hits) {
+    for (let j = Math.max(0, i - 1); j <= Math.min(sentences.length - 1, i + 4); j++) keep.add(j);
+  }
+  return sentences.filter((_, i) => keep.has(i));
 }
 
 /** A result about a veil, a heart, or a bubble is only usable if it is astronomy. */
 function isAstronomical(sentences) {
   return sentences.some((s) =>
-    /(nebula|galaxy|star cluster|cluster of stars|supernova|constellation|light-?year|parsec|magnitude|catalogued|designated|Messier|NGC|IC\s?\d)/i.test(s)
+    /(nebula|galaxy|star cluster|cluster of stars|supernova|constellation|light-?year|parsec|magnitude|catalogued|designated|Messier|NGC|IC\s?\d|\bh\s?ii\b|cirrus|lynds|\bregion\b)/i.test(s)
   );
 }
 
 async function describeName(name, opts = {}) {
   const known = designations(name);
+  // Quality order, single provider (Brave) for search; DuckDuckGo scraping is
+  // only a fallback for when BRAVE_API_KEY is unset. Each source declares
+  // whether it is contiguous article prose (mentions get a context window)
+  // or independent snippets (direct mentions only).
   const sources = [
-    () => wikipediaIntro(name),
-    () => wikipediaSummary(name),
-    () => (opts.noBrave ? [] : braveContext(`${name} deep sky object constellation distance discovery`, known)),
-    () => duckduckgoSnippets(`${name} deep sky object constellation distance`),
+    { fn: () => wikipediaIntro(name), contiguous: true },
+    { fn: () => wikipediaSummary(name), contiguous: true },
+    { fn: () => (opts.noBrave ? [] : braveWebSnippets(name)), contiguous: false },
+    { fn: () => (opts.noBrave ? [] : braveContext(`${name} deep sky object constellation distance discovery`, known)), contiguous: false },
+    // Last resort (also used when Brave is off): DuckDuckGo HTML scraping.
+    { fn: () => (opts.noBrave ? [] : duckduckgoSnippets(`${name} deep sky object constellation distance`)), contiguous: false },
   ];
-  let best = [];
-  for (const source of sources) {
+  let thin = null; // exactly one usable sentence: try further, use it if nothing better
+  for (const { fn, contiguous } of sources) {
     try {
-      const sentences = ((await source()) || []).filter((s) => !isJunkSentence(s));
-      if (!isAstronomical(sentences)) continue;
-      if (sentences.length > best.length) best = sentences;
-      if (best.length >= 4) return best;
+      const sentences = ((await fn()) || []).filter((s) => !isJunkSentence(s));
+      // Relevance gate: a source that never names the object is about
+      // something else (or the wrong object entirely) and never counts.
+      const relevant = mentionWindow(sentences, name, contiguous);
+      if (!relevant.length || !isAstronomical(relevant)) continue;
+      // First source with real information wins; sources are never merged or
+      // length-competed. (Longest-wins once let a 6-sentence forum pile beat a
+      // clean two-line catalogue fact.)
+      if (relevant.length >= 2) return relevant;
+      if (!thin) thin = relevant;
     } catch (_) {
       /* try the next source */
     }
   }
-  return best;
+  return thin || [];
 }
 
 function descriptionCandidates(ctx, title) {
@@ -822,10 +940,7 @@ function descriptionCandidates(ctx, title) {
     seen.add(n.toLowerCase());
     out.push(n);
   };
-  const designations = (text) =>
-    (String(text).match(/\b(NGC|IC|Sh\s?2|LBN|Messier|M)(\s?\d+[a-z]?)/gi) || []).map(
-      (d) => d.replace(/\s+/g, '')
-    );
+  const designationList = designations; // catalogue-number extractor, shared
 
   for (const d of designations(ctx ? ctx.object : '')) push(d);
   for (const d of designations(title || '')) push(d);
@@ -856,7 +971,7 @@ async function fetchAutoDescription(names, opts = {}) {
     if (sentences.length > best.length) best = sentences;
     if (best.length >= 5) break;
   }
-  if (best.length < 2) return null;
+  if (best.length < 1) return null;
   const deterministic = best.slice(0, 10).join(' ');
   if (!opts.llmDescription) return { text: deterministic, path: 'deterministic' };
 
@@ -868,6 +983,7 @@ async function fetchAutoDescription(names, opts = {}) {
   const problems = factGuard(summary, sourceText);
   if (problems.length) {
     console.warn(`llm description rejected by fact guard: ${problems.join('; ')}`);
+    console.warn(`rejected summary was: ${summary.slice(0, 300)}`);
     return { text: deterministic, path: 'llm rejected' };
   }
   return { text: summary, path: 'llm' };
@@ -983,7 +1099,11 @@ function factGuard(summary, sourceText) {
   }
   const sourceValues = collectNumberValues(source);
   const summaryValues = collectNumberValues(normForCompare(summary));
+  // Spelled-out small numbers ("one of the", "two of which") are ordinary
+  // English far more often than quantitative claims, and every *digit* in the
+  // summary is still checked above — only verify larger spelled-out values.
   for (const v of summaryValues) {
+    if (v < 11) continue;
     if (!sourceValues.has(v)) problems.push(`number value ${v} not in source`);
   }
 
@@ -1011,11 +1131,17 @@ function factGuard(summary, sourceText) {
     }
   }
   // Designations (NGC 1333, L1450, Barnard 205, Sh2-311) must be in the source.
+  const srcSq = normForCompare(source).replace(/\s+/g, '');
   for (const d of summary.match(/\b(?:NGC|IC|LBN|Sh\s?2|Barnard|PGC|Messier|M)\s?\d+[a-z]?\b/g) || []) {
     const key = normForCompare(d).replace(/\s+/g, '');
-    if (!normForCompare(source).replace(/\s+/g, '').includes(key)) {
-      problems.push(`designation "${d}" not in source`);
-    }
+    if (srcSq.includes(key)) continue;
+    // Catalogue lists ("LBN 458, 460, and 462") support every listed number
+    // under one written prefix: accept prefix+number co-occurring within the
+    // same sentence instead of demanding the literal designation string.
+    const prefix = normForCompare(d).replace(/\s*\d+[a-z]?$/, '').trim();
+    const number = (d.match(/\d+/) || [''])[0];
+    if (prefix && number && new RegExp(`\\b${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]{0,60}\\b${number}\\b`, 'i').test(source)) continue;
+    problems.push(`designation "${d}" not in source`);
   }
   return problems;
 }
@@ -2706,8 +2832,8 @@ async function saveDraft(page) {
     return;
   }
   if (!opts.resume) {
-    // Only --dry-run may run without a file, to inspect an inventory directory.
-    if (!opts.file && !opts.dryRun) throw new Error('usage: upload.js <file> "<title>"');
+    // Only --dry-run/--acquisition-json may run without a file, to inspect an inventory directory.
+    if (!opts.file && !opts.dryRun && !opts.acquisitionJson) throw new Error('usage: upload.js <file> "<title>"');
     if (opts.file && !opts.title && !opts.dryRun) throw new Error('usage: upload.js <file> "<title>"');
     if (opts.file && !fs.existsSync(opts.file)) throw new Error(`file not found: ${opts.file}`);
     if (!SUBJECTS.includes(opts.subject)) {
@@ -2721,7 +2847,26 @@ async function saveDraft(page) {
   describeAcquisition(ctx, setup, rows, opts);
   const csv = rows.length ? acquisitionCsv(rows, opts.csvFilterColumn) : '';
 
+  // --acquisition-json: the inventory server's submit-page preview mode.
+  // Print exactly one machine-readable line and stop before any description
+  // fetching or Chrome work.
+  if (opts.acquisitionJson) {
+    console.log(`ACQ_JSON ${JSON.stringify({
+      frames: rows.reduce((n, r) => n + r.number, 0),
+      seconds: rows.reduce((s, r) => s + r.number * r.duration, 0),
+      rows: rows.map((r) => ({
+        date: r.date,
+        number: r.number,
+        duration: r.duration,
+        filter: r.filter || null,
+        iso: r.iso ?? null,
+      })),
+    })}`);
+    return;
+  }
+
   // Auto-description: fetch from web if requested and no explicit description
+  let descriptionPath = opts.description ? 'provided' : null;
   if (opts.autoDescription && !opts.description && (ctx?.object || opts.title)) {
     const names = descriptionCandidates(ctx, opts.title);
     console.log(`
@@ -2729,11 +2874,24 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
     const autoDesc = await fetchAutoDescription(names, opts);
     if (autoDesc) {
       opts.description = autoDesc.text;
+      descriptionPath = autoDesc.path;
       console.log(`Description path: ${autoDesc.path} (${autoDesc.text.length} chars)`);
       console.log(`Auto-description: ${autoDesc.text}`);
     } else {
       console.warn('Auto-description: no results found');
     }
+  }
+
+  // --describe-only: the inventory server's ahead-of-time generation mode.
+  // Print exactly one machine-readable line and stop before any Chrome work.
+  if (opts.describeOnly) {
+    console.log(`DESCRIBE_JSON ${JSON.stringify({
+      ok: Boolean(opts.description),
+      text: opts.description || null,
+      path: descriptionPath,
+      sources: [...sourceUrls],
+    })}`);
+    return;
   }
 
   if (opts.dryRun) {
@@ -2745,7 +2903,7 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
     if (setup) console.log(`\nWould apply setup: ${setup}`);
     if (csv)
       console.log(
-        `\nAcquisition CSV (${rows.length} row(s)):\n${csv}(a filter id in the CSV is silently dropped if it is not in this account's equipment database)`
+        `\nAcquisition CSV (${rows.length} row(s)):\n${csv}\n(a filter id in the CSV is silently dropped if it is not in this account's equipment database)`
       );
     return;
   }
@@ -2834,8 +2992,22 @@ Fetching auto-description, searching: ${names.join(' | ')}`);
       // catalogue; ids outside this image's equipment setup are dropped
       // silently. The Summary verdict catches that, and the row editor fills
       // whatever is missing.
-      await applyAcquisitionFilters(page, rows, opts);
-      await reportAcquisitionRows(page);
+      try {
+        await applyAcquisitionFilters(page, rows, opts);
+        await reportAcquisitionRows(page);
+      } catch (verifyErr) {
+        // AstroBin keeps the whole filled wizard client-side until Save, so a
+        // throw here would lose every row: save the draft (repaired as far as
+        // it got) before rethrowing. A flagged draft beats a lost session.
+        console.warn(`acquisition verification failed (${verifyErr.message}) — saving the draft anyway`);
+        try {
+          const url = await saveDraft(page);
+          console.warn(`Draft saved despite the mismatch: ${url}`);
+        } catch (saveErr) {
+          console.warn(`and saving the draft also failed: ${saveErr.message}`);
+        }
+        throw verifyErr;
+      }
     }
 
     const url = await saveDraft(page);
